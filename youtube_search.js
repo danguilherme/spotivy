@@ -1,8 +1,9 @@
+const config = require('./config.json');
 const Youtube = require('youtube-api');
 
 Youtube.authenticate({
   type: 'key',
-  key: 'AIzaSyD-FTbmef04v0P_R7lTmpHs4PFNgzS_Id0'
+  key: config.youtube.key
 });
 
 
