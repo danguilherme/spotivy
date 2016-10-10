@@ -1,0 +1,15 @@
+{
+  "name": "spotivy",
+  "version": "0.0.0",
+  "description": "Spotify music videos downloader",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "youtube-api": "^2.0.2",
+    "ytdl-core": "^0.7.18"
+  }
+}
