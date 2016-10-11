@@ -12,7 +12,7 @@ function searchVideo(term) {
   return new Promise(function (resolve, reject) {
     Youtube.search.list({
       part: 'snippet',
-      maxResults: 5, // results per page
+      maxResults: 20, // results per page
       q: term,
       type: 'video'
     }, (err, results) => {
