@@ -1,31 +1,18 @@
 const fs = require('fs');
 const path = require('path');
 const ytdl = require('ytdl-core');
-const youtube = require('./youtube_search');
-const SpotifyWebApi = require('spotify-web-api-node');
 const async = require('async');
 const mkdirp = require('mkdirp');
-
-const config = require('./config.json');
+const youtube = require('./youtube_search');
 const spotify = require('./spotify');
-
-function onInfo(info, format) {
-  console.log(`--- downloading "${info.title}" (${format.resolution}) from ${info.author}`);
-}
+const config = require('./config.json');
 
 const BASE_VIDEOS_FOLDER = "videos";
-const METADATA_FILE = "metadata.json";
-
-
-
-
-
+const METADATA_FILE = ".downloaded";
 
 spotify
-  .getAllUserPlaylists('danguilherme')
+  .getAllUserPlaylists(config.spotify.username)
   .then(downloadPlaylists)
-  // .then(playlists => spotify.getAllPlaylistTracks('danguilherme', playlists[0].id))
-  // .then(tracks => console.log(tracks.length))
   .catch(err => console.error(err));
 
 function downloadPlaylists(playlists) {
@@ -36,7 +23,7 @@ function downloadPlaylists(playlists) {
         console.log("[Downloading playlist]", playlist.name);
 
         spotify
-          .getAllPlaylistTracks('danguilherme', playlists[0].id)
+          .getAllPlaylistTracks(playlist.owner.id, playlist.id)
           .then(tracks => downloadPlaylistTracks(playlist, tracks))
           .then(_ => done());
       },
@@ -81,6 +68,10 @@ function downloadPlaylistTracks(playlist, tracks) {
             metadata.ids.push(track.track.id);
             saveMetadata(metadata, metadataPath);
 
+            done();
+          })
+          .catch(err => {
+            console.error("     [Download failed]", err);
             done();
           });
       },
@@ -130,17 +121,19 @@ function downloadYoutubeVideo(name, location = './') {
   })
 }
 
-function loadMetadata(path) {
-  if (!fs.existsSync(path))
+function loadMetadata(location) {
+  if (!fs.existsSync(location))
     saveMetadata({
       ids: []
-    }, path);
+    }, location);
 
-  return JSON.parse(fs.readFileSync(path, 'utf-8'));
+  return JSON.parse(fs.readFileSync(location, 'utf-8'));
 }
 
-function saveMetadata(metadata, path) {
-  fs.writeFileSync(path, JSON.stringify(metadata, null, 2));
+function saveMetadata(metadata, location) {
+  if (!fs.existsSync(location))
+    mkdirp.sync(path.dirname(location));
+  fs.writeFileSync(location, JSON.stringify(metadata, null, 2));
 }
 
 /**
@@ -150,5 +143,8 @@ function saveMetadata(metadata, path) {
  * @returns {string} the modified name
  */
 function createFolderName(name) {
-  return name.replace(/[\\\/]/gi, '-');
+  return name
+    .replace(/[\\\/]/gi, '-')
+    .replace(/"/gi, "'")
+    .replace(/\?/gi, "");
 }

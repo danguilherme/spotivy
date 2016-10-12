@@ -3,6 +3,7 @@
     "key": ""
   },
   "spotify": {
+    "username": "",
     "clientId": "",
     "clientSecret": ""
   }
