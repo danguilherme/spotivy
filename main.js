@@ -71,7 +71,7 @@ function downloadPlaylistTracks(playlist, tracks) {
             done();
           })
           .catch(err => {
-            console.error("     [Download failed]", err);
+            console.error("     [Download failed]", err.message || err);
             done();
           });
       },
@@ -109,8 +109,9 @@ function downloadYoutubeVideo(name, location = './') {
         ytdl(`https://www.youtube.com/watch?v=${video.id.videoId}`, {
             quality: 18 // 360p
           })
-          // .on('info', onInfo)
+          .on('error', err => reject(err))
           .pipe(fs.createWriteStream(path.join(location, `${createFolderName(name)}.mp4`)))
+          .on('error', err => reject(err))
           .on('finish', _ => {
             resolve({
               path: path.join(location, `${createFolderName(name)}.mp4`),
@@ -144,7 +145,7 @@ function saveMetadata(metadata, location) {
  */
 function createFolderName(name) {
   return name
-    .replace(/[\\\/]/gi, '-')
+    .replace(/[\\\/\*<>]/gi, '-')
     .replace(/"/gi, "'")
-    .replace(/\?/gi, "");
+    .replace(/[\?:]/gi, "");
 }
