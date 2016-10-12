@@ -51,7 +51,22 @@ function downloadPlaylists(playlists) {
   });
 }
 
+/**
+ * Also checks if the video isn't already downloaded.
+ * 
+ * @param {SpotifyPlaylist} playlist
+ * @param {Array} tracks
+ * @returns
+ */
 function downloadPlaylistTracks(playlist, tracks) {
+  let videoPath = path.join(BASE_VIDEOS_FOLDER, createFolderName(playlist.name));
+  let metadataPath = path.join(videoPath, METADATA_FILE);
+
+  let metadata = loadMetadata(metadataPath);
+
+  // remove tracks that are already downloaded from the list
+  tracks = tracks.filter(item => metadata.ids.indexOf(item.track.id) == -1)
+
   return new Promise(function (resolve, reject) {
     async.eachSeries(
       tracks,
@@ -60,9 +75,14 @@ function downloadPlaylistTracks(playlist, tracks) {
 
         console.log("   [Downloading track]", name);
 
-        let videoPath = path.join(BASE_VIDEOS_FOLDER, createFolderName(playlist.name));
         downloadYoutubeVideo(name, videoPath)
-          .then(_ => done());
+          .then(_ => {
+            // update downloaded tracks control
+            metadata.ids.push(track.track.id);
+            saveMetadata(metadata, metadataPath);
+
+            done();
+          });
       },
       function callback(err) {
         if (err) {
@@ -75,6 +95,13 @@ function downloadPlaylistTracks(playlist, tracks) {
   });
 }
 
+/**
+ * Downloads the given video from YouTube.
+ *
+ * @param {string} name The name of the video to look for
+ * @param {string} [location='./'] Where the video file should be saved
+ * @returns {PromiseLike}
+ */
 function downloadYoutubeVideo(name, location = './') {
   return new Promise(function (resolve, reject) {
     // setup folders
@@ -103,6 +130,25 @@ function downloadYoutubeVideo(name, location = './') {
   })
 }
 
+function loadMetadata(path) {
+  if (!fs.existsSync(path))
+    saveMetadata({
+      ids: []
+    }, path);
+
+  return JSON.parse(fs.readFileSync(path, 'utf-8'));
+}
+
+function saveMetadata(metadata, path) {
+  fs.writeFileSync(path, JSON.stringify(metadata, null, 2));
+}
+
+/**
+ * Transform the given string to a folder-friendly name for windows
+ *
+ * @param {string} name
+ * @returns {string} the modified name
+ */
 function createFolderName(name) {
   return name.replace(/[\\\/]/gi, '-');
 }
