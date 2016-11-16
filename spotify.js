@@ -32,75 +32,55 @@ function login() {
 
 function getAllUserPlaylists(username) {
   // TODO: use streams to handle the pages as they come
-  return new Promise(function (resolve, reject) {
-    let totalItems = null;
-    let offset = 0;
-    let playlists = [];
-
-    login().then(api => {
-      async.doWhilst(
-        function iteratee(done) {
-          api.getUserPlaylists('danguilherme', {
-              limit: 20,
-              offset: offset
-            })
-            .then(data => {
-              totalItems = data.body.total;
-              offset += 20;
-
-              playlists = playlists.concat(data.body.items);
-              done();
-            })
-            .catch(err => done(err));
-        },
-        function test() {
-          return playlists.length < totalItems;
-        },
-        function callback(err) {
-          if (err) {
-            reject(err);
-            return;
-          }
-          resolve(playlists);
-        });
+  return login()
+    .then(api => {
+      let getUserPlaylists = api.getUserPlaylists.bind(api, username);
+      return getAllItemsFromPaginatedEndpoint(getUserPlaylists);
     });
-  })
 }
 
 function getAllPlaylistTracks(username, playlistId) {
   // TODO: use streams to handle the pages as they come
-  return new Promise(function (resolve, reject) {
-    let totalItems = null;
-    let offset = 0;
-    let tracks = [];
-
-    login().then(api => {
-      async.doWhilst(
-        function iteratee(done) {
-          api.getPlaylistTracks(username, playlistId, {
-              limit: 20,
-              offset: offset
-            })
-            .then(data => {
-              totalItems = data.body.total;
-              offset += 20;
-
-              tracks = tracks.concat(data.body.items);
-              done();
-            })
-            .catch(err => done(err));
-        },
-        function test() {
-          return tracks.length < totalItems;
-        },
-        function callback(err) {
-          if (err) {
-            reject(err);
-            return;
-          }
-          resolve(tracks);
-        });
+  return login()
+    .then(api => {
+      let getPlaylistTracks = api.getPlaylistTracks.bind(api, username, playlistId);
+      return getAllItemsFromPaginatedEndpoint(getPlaylistTracks)
     });
+}
+
+function getAllItemsFromPaginatedEndpoint(endpointFunction) {
+  // TODO: use streams to handle the pages as they come
+  return new Promise(function (resolve, reject) {
+    let totalItems = [];
+    let totalItemsCount = null;
+    let offset = 0;
+    let limit = 20;
+
+    async.doWhilst(
+      function iteratee(done) {
+        endpointFunction({
+            limit: limit,
+            offset: offset
+          })
+          .then(data => {
+            totalItemsCount = data.body.total;
+            offset += limit;
+
+            totalItems = totalItems.concat(data.body.items);
+            done();
+          })
+          .catch(err => done(err));
+      },
+      function test() {
+        return totalItems.length < totalItemsCount;
+      },
+      function callback(err) {
+        if (err) {
+          reject(err);
+          return;
+        }
+        resolve(totalItems);
+      });
   });
 }
 
