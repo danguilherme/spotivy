@@ -66,6 +66,8 @@ function downloadPlaylistTracks(playlist, tracks) {
           .then(_ => {
             // update downloaded tracks control
             metadata.ids.push(track.track.id);
+            // info for humans to understand the metadata file
+            metadata.names[track.track.id] = name;
             saveMetadata(metadata, metadataPath);
 
             done();
@@ -125,7 +127,8 @@ function downloadYoutubeVideo(name, location = './') {
 function loadMetadata(location) {
   if (!fs.existsSync(location))
     saveMetadata({
-      ids: []
+      ids: [],
+      names: {}
     }, location);
 
   return JSON.parse(fs.readFileSync(location, 'utf-8'));
