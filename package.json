@@ -9,6 +9,7 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
+    "args": "^2.2.4",
     "async": "^2.0.1",
     "jsonfile": "^2.4.0",
     "mkdirp": "^0.5.1",

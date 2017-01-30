@@ -5,10 +5,18 @@ const async = require('async');
 const mkdirp = require('mkdirp');
 const youtube = require('./youtube_search');
 const spotify = require('./spotify');
+const args = require('args');
 const config = require('./config.json');
 
-const BASE_VIDEOS_FOLDER = "videos";
+args
+  .option('output', 'Location where to save the downloaded videos', 'videos');
+
+// load config from command prompt args
+Object.assign(config, args.parse(process.argv));
+
 const METADATA_FILE = ".downloaded";
+
+console.info(`Saving videos to "${config.output}"`);
 
 spotify
   .getAllUserPlaylists(config.spotify.username)
@@ -46,7 +54,7 @@ function downloadPlaylists(playlists) {
  * @returns
  */
 function downloadPlaylistTracks(playlist, tracks) {
-  let videoPath = path.join(BASE_VIDEOS_FOLDER, createFolderName(playlist.name));
+  let videoPath = path.join(config.output, createFolderName(playlist.name));
   let metadataPath = path.join(videoPath, METADATA_FILE);
 
   let metadata = loadMetadata(metadataPath);

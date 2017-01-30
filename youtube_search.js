@@ -29,14 +29,23 @@ function searchVideo(term) {
 function searchMusicVideo(term) {
   return searchVideo(term)
     .then(results => {
-      let videos = results.filter(x => ~x.snippet.channelTitle.indexOf('VEVO'));
+      let videos = results
+        .slice(0, 5) // in the first 5 results...
+        .filter(x => contains(x.snippet.channelTitle, 'VEVO') ||
+                     contains(x.snippet.channelTitle.toLowerCase(), 'official') ||
+                     contains(x.snippet.title.toLowerCase(), 'official'));
       if (videos.length)
-        // if found from VEVO, return it
+        // if found a good result (VEVO, official video, ...)
         return videos[0];
       else
         // if not, return the first match
         return results[0];
-    });
+    })
+    .catch(x => console.error(x));
+}
+
+function contains(string, content) {
+  return !!(~(string || "").indexOf(content));
 }
 
 // searchMusicVideo(process.argv[2]).then(x => console.log(x.map(i => i.id.kind)));
