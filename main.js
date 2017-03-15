@@ -9,14 +9,17 @@ const args = require('args');
 const config = require('./config.json');
 
 args
-  .option('output', 'Location where to save the downloaded videos', 'videos');
+  .option('output', 'Location where to save the downloaded videos', 'tracks')
+  .option('format', "The format of the file to download. Either 'audio' or 'video'", 'video')
+  .option('audio', 'Download as audio', false);
 
 // load config from command prompt args
 Object.assign(config, args.parse(process.argv));
+if (config.audio) config.format = 'audio';
 
 const METADATA_FILE = ".downloaded";
 
-console.info(`Saving videos to "${config.output}"`);
+console.info(`Saving ${config.format === 'video' ? 'videos' : 'audios'} to "${config.output}"`);
 
 spotify
   .getAllUserPlaylists(config.spotify.username)
@@ -32,7 +35,7 @@ function downloadPlaylists(playlists) {
 
         spotify
           .getAllPlaylistTracks(playlist.owner.id, playlist.id)
-          .then(tracks => downloadPlaylistTracks(playlist, tracks))
+          .then(tracks => downloadPlaylistTracks(config.format, playlist, tracks))
           .then(_ => done());
       },
       function callback(err) {
@@ -53,9 +56,9 @@ function downloadPlaylists(playlists) {
  * @param {Array} tracks
  * @returns
  */
-function downloadPlaylistTracks(playlist, tracks) {
-  let videoPath = path.join(config.output, createFolderName(playlist.name));
-  let metadataPath = path.join(videoPath, METADATA_FILE);
+function downloadPlaylistTracks(format, playlist, tracks) {
+  let savingPath = path.join(config.output, createFolderName(playlist.name));
+  let metadataPath = path.join(savingPath, METADATA_FILE);
 
   let metadata = loadMetadata(metadataPath);
 
@@ -67,10 +70,11 @@ function downloadPlaylistTracks(playlist, tracks) {
       tracks,
       function iteratee(track, done) {
         let name = `${track.track.artists[0].name} - ${track.track.name}`;
+        let downloadFunction = format === 'video' ? downloadYoutubeVideo : downloadYoutubeAudio;
 
         console.log("   [Downloading track]", name);
 
-        downloadYoutubeVideo(name, videoPath)
+        downloadFunction(name, savingPath)
           .then(_ => {
             // update downloaded tracks control
             metadata.ids.push(track.track.id);
@@ -129,7 +133,43 @@ function downloadYoutubeVideo(name, location = './') {
             });
           });
       });
-  })
+  });
+}
+
+/**
+ * Downloads the audio from the given video from YouTube.
+ *
+ * @param {string} name The name of the video to look for
+ * @param {string} [location='./'] Where the audio file should be saved
+ * @returns {PromiseLike}
+ */
+function downloadYoutubeAudio(name, location = './') {
+  return new Promise(function (resolve, reject) {
+    // setup folders
+    if (!fs.existsSync(location))
+      mkdirp.sync(location);
+
+    youtube.searchMusicVideo(name)
+      .then(video => {
+        if (!video) {
+          reject("Video não encontrado");
+          return;
+        }
+
+        ytdl(`https://www.youtube.com/watch?v=${video.id.videoId}`, {
+            format: 'audioonly'
+          })
+          .on('error', err => reject(err))
+          .pipe(fs.createWriteStream(path.join(location, `${createFolderName(name)}.mp3`)))
+          .on('error', err => reject(err))
+          .on('finish', _ => {
+            resolve({
+              path: path.join(location, `${createFolderName(name)}.mp3`),
+              video
+            });
+          });
+      });
+  });
 }
 
 function loadMetadata(location) {

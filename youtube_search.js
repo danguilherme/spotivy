@@ -44,11 +44,15 @@ function searchMusicVideo(term) {
     .catch(x => console.error(x));
 }
 
+function searchMusicAudio(term) {
+  return searchVideo(`${term} audio 128kbps`)
+    .then(results => results[0])
+    .catch(x => console.error(x));
+}
+
 function contains(string, content) {
   return !!(~(string || "").indexOf(content));
 }
-
-// searchMusicVideo(process.argv[2]).then(x => console.log(x.map(i => i.id.kind)));
 
 module.exports = {
   searchVideo,
