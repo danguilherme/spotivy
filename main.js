@@ -3,23 +3,34 @@ const path = require('path');
 const ytdl = require('ytdl-core');
 const async = require('async');
 const mkdirp = require('mkdirp');
+const chalk = require('chalk');
+const pkg = require('./package.json');
 const youtube = require('./youtube_search');
 const spotify = require('./spotify');
 const args = require('args');
 const config = require('./config.json');
+const debug = require('./debug');
+
+const METADATA_FILE = ".downloaded";
 
 args
   .option('output', 'Location where to save the downloaded videos', 'tracks')
   .option('format', "The format of the file to download. Either 'audio' or 'video'", 'video')
-  .option('audio', 'Download as audio', false);
+  .option('audio', 'Download as audio', false)
+  .option('debug', 'Show exagerated logs', false);
 
 // load config from command prompt args
 Object.assign(config, args.parse(process.argv));
 if (config.audio) config.format = 'audio';
+if (config.debug) process.env.spotivyDebug = true;
 
-const METADATA_FILE = ".downloaded";
 
-console.info(`Saving ${config.format === 'video' ? 'videos' : 'audios'} to "${config.output}"`);
+debug(`Loaded options:`, JSON.stringify(config, null, 2));
+
+console.log();
+console.log(chalk.bold.green(`[${pkg.name} v${pkg.version}]`),
+  `Saving ${config.format === 'video' ? 'videos' : 'audios'} to "${config.output}"`);
+console.log();
 
 spotify
   .getAllUserPlaylists(config.spotify.username)
@@ -31,7 +42,7 @@ function downloadPlaylists(playlists) {
     async.eachSeries(
       playlists,
       function iteratee(playlist, done) {
-        console.log("[Downloading playlist]", playlist.name);
+        console.log(chalk.bold.blue("[Downloading playlist]"), playlist.name);
 
         spotify
           .getAllPlaylistTracks(playlist.owner.id, playlist.id)
@@ -63,7 +74,8 @@ function downloadPlaylistTracks(format, playlist, tracks) {
   let metadata = loadMetadata(metadataPath);
 
   // remove tracks that are already downloaded from the list
-  tracks = tracks.filter(item => metadata.ids.indexOf(item.track.id) == -1)
+  tracks = tracks.filter(item => metadata.ids.indexOf(item.track.id) == -1);
+  debug(`${tracks.length} tracks will be downloaded`);
 
   return new Promise(function (resolve, reject) {
     async.eachSeries(
@@ -72,7 +84,7 @@ function downloadPlaylistTracks(format, playlist, tracks) {
         let name = `${track.track.artists[0].name} - ${track.track.name}`;
         let downloadFunction = format === 'video' ? downloadYoutubeVideo : downloadYoutubeAudio;
 
-        console.log("   [Downloading track]", name);
+        console.log(chalk.bold.blue("   [Downloading track]"), name);
 
         downloadFunction(name, savingPath)
           .then(_ => {
@@ -85,7 +97,7 @@ function downloadPlaylistTracks(format, playlist, tracks) {
             done();
           })
           .catch(err => {
-            console.error("     [Download failed]", err.message || err);
+            console.error(chalk.bold.red("     [Download failed]"), err.message || err);
             done();
           });
       },
@@ -121,7 +133,10 @@ function downloadYoutubeVideo(name, location = './') {
           return;
         }
 
-        ytdl(`https://www.youtube.com/watch?v=${video.id.videoId}`, {
+        let downloadUrl = `https://www.youtube.com/watch?v=${video.id.videoId}`;
+        debug(`Downloading video from url: ${downloadUrl}`);
+
+        ytdl(downloadUrl, {
             quality: 18 // 360p
           })
           .on('error', err => reject(err))
@@ -151,14 +166,17 @@ function downloadYoutubeAudio(name, location = './') {
     if (!fs.existsSync(location))
       mkdirp.sync(location);
 
-    youtube.searchMusicVideo(name)
+    youtube.searchMusicAudio(name)
       .then(video => {
         if (!video) {
-          reject("Video não encontrado");
+          reject("Áudio não encontrado");
           return;
         }
 
-        ytdl(`https://www.youtube.com/watch?v=${video.id.videoId}`, {
+        let downloadUrl = `https://www.youtube.com/watch?v=${video.id.videoId}`;
+        debug(`Downloading audio from url: ${downloadUrl}`);
+
+        ytdl(downloadUrl, {
             filter: 'audioonly'
           })
           .on('error', err => reject(err))
