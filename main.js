@@ -109,6 +109,7 @@ function downloadPlaylistTracks(format, playlist, tracks) {
  */
 function downloadYoutubeVideo(name, location = './') {
   return new Promise(function (resolve, reject) {
+    let fullPath = path.join(location, `${createFolderName(name)}.mp4`);
     // setup folders
     if (!fs.existsSync(location))
       mkdirp.sync(location);
@@ -124,11 +125,11 @@ function downloadYoutubeVideo(name, location = './') {
             quality: 18 // 360p
           })
           .on('error', err => reject(err))
-          .pipe(fs.createWriteStream(path.join(location, `${createFolderName(name)}.mp4`)))
+          .pipe(fs.createWriteStream(fullPath))
           .on('error', err => reject(err))
           .on('finish', _ => {
             resolve({
-              path: path.join(location, `${createFolderName(name)}.mp4`),
+              path: fullPath,
               video
             });
           });
@@ -145,6 +146,7 @@ function downloadYoutubeVideo(name, location = './') {
  */
 function downloadYoutubeAudio(name, location = './') {
   return new Promise(function (resolve, reject) {
+    let fullPath = path.join(location, `${createFolderName(name)}.mp3`);
     // setup folders
     if (!fs.existsSync(location))
       mkdirp.sync(location);
@@ -157,14 +159,14 @@ function downloadYoutubeAudio(name, location = './') {
         }
 
         ytdl(`https://www.youtube.com/watch?v=${video.id.videoId}`, {
-            format: 'audioonly'
+            filter: 'audioonly'
           })
           .on('error', err => reject(err))
-          .pipe(fs.createWriteStream(path.join(location, `${createFolderName(name)}.mp3`)))
+          .pipe(fs.createWriteStream(fullPath))
           .on('error', err => reject(err))
           .on('finish', _ => {
             resolve({
-              path: path.join(location, `${createFolderName(name)}.mp3`),
+              path: fullPath,
               video
             });
           });
