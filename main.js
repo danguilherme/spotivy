@@ -161,6 +161,17 @@ function downloadYoutubeVideo(name, location = './') {
  */
 function downloadYoutubeAudio(name, location = './') {
   return new Promise(function (resolve, reject) {
+
+    /**
+     * Example string: audio/mp4; codecs="mp4a.40.2"
+     * Group #0: audio/mp4; codecs="mp4a.40.2"
+     * Group #1: audio/mp4
+     * Group #2: audio
+     * Group #3: mp4
+     * Group #4: mp4a.40.2
+     */
+    let formatTypeRegex = /((.*)\/(.*)); codecs="(.*)"/;
+
     let fullPath = path.join(location, `${createFolderName(name)}.mp3`);
     // setup folders
     if (!fs.existsSync(location))
@@ -177,7 +188,16 @@ function downloadYoutubeAudio(name, location = './') {
         debug(`Downloading audio from url: ${downloadUrl}`);
 
         ytdl(downloadUrl, {
-            filter: 'audioonly'
+            filter: function (format) {
+              if (!format.type) return false;
+
+              let match = formatTypeRegex.exec(format.type);
+              let shouldDownload = match[2] === 'audio' && match[3] === 'mp4';
+
+              if (shouldDownload) debug(`File type: ${match[1]} (${match[4]})`);
+
+              return shouldDownload;
+            }
           })
           .on('error', err => reject(err))
           .pipe(fs.createWriteStream(fullPath))

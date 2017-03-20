@@ -59,7 +59,7 @@ function getAllItemsFromPaginatedEndpoint(endpointFunction) {
     let totalItems = [];
     let totalItemsCount = null;
     let offset = 0;
-    let limit = 20;
+    let limit = 50;
 
     async.doWhilst(
       function iteratee(done) {
