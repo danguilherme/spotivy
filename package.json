@@ -1,9 +1,10 @@
 {
   "name": "spotivy",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "Spotify music videos downloader",
   "main": "main.js",
   "scripts": {
+    "start": "node main.js",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "author": "",
