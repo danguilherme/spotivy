@@ -1,3 +1,5 @@
+#!/usr/bin/env node
+
 const fs = require('fs');
 const fsPath = require('path');
 const ytdl = require('ytdl-core');
