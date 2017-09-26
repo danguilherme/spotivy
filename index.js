@@ -3,7 +3,6 @@
 const fs = require('fs');
 const fsPath = require('path');
 const ytdl = require('ytdl-core');
-const async = require('async');
 const mkdirp = require('mkdirp');
 const chalk = require('chalk');
 const highland = require('highland');
@@ -199,13 +198,13 @@ function downloadYoutubeAudio(name, location = './') {
         debug(`Downloading audio from url: ${downloadUrl}`);
 
         ytdl(downloadUrl, {
-          filter: function (format) {
-            if (!format.type) return false;
+          filter: function (f) {
+            if (!f.type) return false;
 
-            let match = formatTypeRegex.exec(format.type);
-            let shouldDownload = match[2] === 'audio' && match[3] === 'mp4';
+            let [, typeAndFormat, type, format, codec] = formatTypeRegex.exec(f.type);
+            let shouldDownload = type === 'audio' && format === 'mp4';
 
-            if (shouldDownload) debug(`File type: ${match[1]} (${match[4]})`);
+            if (shouldDownload) debug(`File type: ${typeAndFormat} (${codec})`);
 
             return shouldDownload;
           }

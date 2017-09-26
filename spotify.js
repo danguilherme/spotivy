@@ -1,5 +1,4 @@
 const SpotifyWebApi = require('spotify-web-api-node');
-const async = require('async');
 const highland = require('highland');
 const config = require('./config.json');
 const debug = require('./debug');
