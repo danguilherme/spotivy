@@ -1,15 +1,19 @@
-# spotivy
+# Spotivy
 > Spotify music videos downloader
 
 ## Usage
+Download, [configure](#configuration) and use.
+
 ```bash
-node main.js <options>
+node install -g spotivy
+spotivy <options>
 ```
 
 ## Arguments
 - `-o`, `--output`: location where to save the downloaded files *(default: tracks)*
 - `-f`, `--format`: the format of the file to download. Either `audio` or `video` *(default: video)*
 - `-a`, `--audio`: flag to download as audio; equivalent to `--format=audio`
+- `-d`, `--debug`: show detailed logs
 
 ## Configuration
 1.  Rename `config.example.json` to `config.json`.

@@ -1,20 +1,24 @@
+#!/usr/bin/env node
+
 const fs = require('fs');
-const path = require('path');
+const fsPath = require('path');
 const ytdl = require('ytdl-core');
 const async = require('async');
 const mkdirp = require('mkdirp');
 const chalk = require('chalk');
+const highland = require('highland');
+const args = require('args');
+
 const pkg = require('./package.json');
 const youtube = require('./youtube_search');
 const spotify = require('./spotify');
-const args = require('args');
 const config = require('./config.json');
 const debug = require('./debug');
 
 const METADATA_FILE = ".downloaded";
 
 args
-  .option('output', 'Location where to save the downloaded videos', 'tracks')
+  .option('output', 'Location where to save the downloaded videos', './tracks')
   .option('format', "The format of the file to download. Either 'audio' or 'video'", 'video')
   .option('audio', 'Download as audio', false)
   .option('debug', 'Show exagerated logs', false);
@@ -32,84 +36,91 @@ console.log(chalk.bold.green(`[${pkg.name} v${pkg.version}]`),
   `Saving ${config.format === 'video' ? 'videos' : 'audios'} to "${config.output}"`);
 console.log();
 
-spotify
-  .getAllUserPlaylists(config.spotify.username)
-  .then(downloadPlaylists)
-  .catch(err => console.error(err));
+spotify.login().then(function () {
+  return downloadUserPlaylists(config.spotify.username, config);
+})
 
-function downloadPlaylists(playlists) {
-  return new Promise(function (resolve, reject) {
-    async.eachSeries(
-      playlists,
-      function iteratee(playlist, done) {
-        console.log(chalk.bold.blue("[Downloading playlist]"), playlist.name);
+function downloadUserPlaylists(username, options = {}) {
+  let { format, output: path } = options;
+  let currentMetadata = null;
+  let currentMetadataPath = null;
+  let currentPlaylist = null;
+  let currentPath = null;
 
-        spotify
-          .getAllPlaylistTracks(playlist.owner.id, playlist.id)
-          .then(tracks => downloadPlaylistTracks(config.format, playlist, tracks))
-          .then(_ => done());
-      },
-      function callback(err) {
-        if (err) {
-          reject(err);
-          return;
-        }
-        resolve();
-      }
-    )
-  });
+  spotify
+    .getAllUserPlaylists(username)
+    .sequence()
+    .flatMap(playlist => {
+      currentPlaylist = playlist;
+      currentPath = fsPath.join(path, createFolderName(currentPlaylist.name));
+      currentMetadataPath = fsPath.join(currentPath, METADATA_FILE);
+      currentMetadata = loadMetadata(currentMetadataPath);
+
+
+      console.log(chalk.bold.blue("[Downloading playlist]"), currentPlaylist.name);
+      return spotify.getAllPlaylistTracks(currentPlaylist.owner.id, currentPlaylist.id);
+    })
+    .sequence()
+    .map(playlistTrack => playlistTrack.track)
+    // skip downloaded songs
+    .filter(track => {
+      let shouldDownload = !isTrackDownloaded(track.id, currentMetadata);
+      if (!shouldDownload) debug(`Skip "${track.name}"`);
+      return shouldDownload;
+    })
+    .flatMap(track => {
+      console.log(chalk.bold.blue("   [Downloading track]"), track.name);
+
+      const downloadPromise = downloadTrack(track, { format, path: currentPath });
+      return highland(downloadPromise)
+        .on('error', err => {
+          console.error(chalk.bold.red("     [Download failed]"), err.message || err);
+        });
+    })
+    .each(track => {
+      updateMetadata(track, { metadata: currentMetadata });
+      saveMetadata(currentMetadata, currentMetadataPath);
+    })
+    .on('error', err => console.error(err))
+    .toArray();
 }
 
 /**
- * Also checks if the video isn't already downloaded.
+ * Download the specified track on disk
  * 
- * @param {SpotifyPlaylist} playlist
- * @param {Array} tracks
- * @returns
+ * @param {SpotifyTrack} track
+ * @param {Object} options
+ * - format: `video` or `audio`
+ * - path: where the track will be saved on disk
  */
-function downloadPlaylistTracks(format, playlist, tracks) {
-  let savingPath = path.join(config.output, createFolderName(playlist.name));
-  let metadataPath = path.join(savingPath, METADATA_FILE);
+function downloadTrack(track, { format = 'video', path = './' } = {}) {
+  let fileName = `${track.artists[0].name} - ${track.name}`;
+  let metadataPath = fsPath.join(path, METADATA_FILE);
 
-  let metadata = loadMetadata(metadataPath);
+  let downloadFunction = format === 'video' ? downloadYoutubeVideo : downloadYoutubeAudio;
+  return downloadFunction(fileName, path)
+    .then(_ => track);
+}
 
-  // remove tracks that are already downloaded from the list
-  tracks = tracks.filter(item => metadata.ids.indexOf(item.track.id) == -1);
-  debug(`${tracks.length} tracks will be downloaded`);
+function isTrackDownloaded(trackId, metadata = null, { metadataPath = './' } = {}) {
+  if (!metadata) {
+    let metadataPath = fsPath.join(metadataPath, METADATA_FILE);
+    metadata = loadMetadata(metadataPath);
+  }
+  return metadata.ids.indexOf(trackId) !== -1;
+}
 
-  return new Promise(function (resolve, reject) {
-    async.eachSeries(
-      tracks,
-      function iteratee(track, done) {
-        let name = `${track.track.artists[0].name} - ${track.track.name}`;
-        let downloadFunction = format === 'video' ? downloadYoutubeVideo : downloadYoutubeAudio;
+function updateMetadata(track, { metadata = null, metadataPath = './' } = {}) {
+  let fileName = `${track.artists[0].name} - ${track.name}`;
+  if (!metadata)
+    metadata = loadMetadata(fsPath.join(metadataPath, METADATA_FILE));
 
-        console.log(chalk.bold.blue("   [Downloading track]"), name);
+  // update downloaded tracks control
+  metadata.ids.push(track.id);
+  // info for humans to understand the metadata file
+  metadata.names[track.id] = fileName;
 
-        downloadFunction(name, savingPath)
-          .then(_ => {
-            // update downloaded tracks control
-            metadata.ids.push(track.track.id);
-            // info for humans to understand the metadata file
-            metadata.names[track.track.id] = name;
-            saveMetadata(metadata, metadataPath);
-
-            done();
-          })
-          .catch(err => {
-            console.error(chalk.bold.red("     [Download failed]"), err.message || err);
-            done();
-          });
-      },
-      function callback(err) {
-        if (err) {
-          reject(err);
-          return;
-        }
-        resolve();
-      }
-    )
-  });
+  return metadata;
 }
 
 /**
@@ -121,7 +132,7 @@ function downloadPlaylistTracks(format, playlist, tracks) {
  */
 function downloadYoutubeVideo(name, location = './') {
   return new Promise(function (resolve, reject) {
-    let fullPath = path.join(location, `${createFolderName(name)}.mp4`);
+    let fullPath = fsPath.join(location, `${createFolderName(name)}.mp4`);
     // setup folders
     if (!fs.existsSync(location))
       mkdirp.sync(location);
@@ -137,8 +148,8 @@ function downloadYoutubeVideo(name, location = './') {
         debug(`Downloading video from url: ${downloadUrl}`);
 
         ytdl(downloadUrl, {
-            quality: 18 // 360p
-          })
+          quality: 18 // 360p
+        })
           .on('error', err => reject(err))
           .pipe(fs.createWriteStream(fullPath))
           .on('error', err => reject(err))
@@ -172,7 +183,7 @@ function downloadYoutubeAudio(name, location = './') {
      */
     let formatTypeRegex = /((.*)\/(.*)); codecs="(.*)"/;
 
-    let fullPath = path.join(location, `${createFolderName(name)}.mp3`);
+    let fullPath = fsPath.join(location, `${createFolderName(name)}.mp3`);
     // setup folders
     if (!fs.existsSync(location))
       mkdirp.sync(location);
@@ -188,17 +199,17 @@ function downloadYoutubeAudio(name, location = './') {
         debug(`Downloading audio from url: ${downloadUrl}`);
 
         ytdl(downloadUrl, {
-            filter: function (format) {
-              if (!format.type) return false;
+          filter: function (format) {
+            if (!format.type) return false;
 
-              let match = formatTypeRegex.exec(format.type);
-              let shouldDownload = match[2] === 'audio' && match[3] === 'mp4';
+            let match = formatTypeRegex.exec(format.type);
+            let shouldDownload = match[2] === 'audio' && match[3] === 'mp4';
 
-              if (shouldDownload) debug(`File type: ${match[1]} (${match[4]})`);
+            if (shouldDownload) debug(`File type: ${match[1]} (${match[4]})`);
 
-              return shouldDownload;
-            }
-          })
+            return shouldDownload;
+          }
+        })
           .on('error', err => reject(err))
           .pipe(fs.createWriteStream(fullPath))
           .on('error', err => reject(err))
@@ -224,7 +235,7 @@ function loadMetadata(location) {
 
 function saveMetadata(metadata, location) {
   if (!fs.existsSync(location))
-    mkdirp.sync(path.dirname(location));
+    mkdirp.sync(fsPath.dirname(location));
   fs.writeFileSync(location, JSON.stringify(metadata, null, 2));
 }
 
