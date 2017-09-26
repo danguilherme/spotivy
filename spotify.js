@@ -1,5 +1,6 @@
 const SpotifyWebApi = require('spotify-web-api-node');
 const async = require('async');
+const highland = require('highland');
 const config = require('./config.json');
 const debug = require('./debug');
 
@@ -11,6 +12,8 @@ function login() {
       resolve(api);
       return;
     }
+
+    debug(`Spotify login`);
 
     api = new SpotifyWebApi({
       clientId: config.spotify.clientId,
@@ -32,67 +35,59 @@ function login() {
 }
 
 function getAllUserPlaylists(username) {
-  // TODO: use streams to handle the pages as they come
-  return login()
-    .then(api => {
-      debug(`Fetching playlists of ${username}`);
-      let getUserPlaylists = api.getUserPlaylists.bind(api, username);
-      return getAllItemsFromPaginatedEndpoint(getUserPlaylists);
-    });
+  debug(`Fetching playlists of ${username}`);
+  return createPaginationStream(function getPlaylistTracks() {
+    return api.getUserPlaylists(username);
+  });
 }
 
 function getAllPlaylistTracks(username, playlistId) {
-  // TODO: use streams to handle the pages as they come
-  return login()
-    .then(api => {
-      debug(`Fetching tracks from playlist with id '${playlistId}'`);
-      let getPlaylistTracks = api.getPlaylistTracks.bind(api, username, playlistId);
-      return getAllItemsFromPaginatedEndpoint(getPlaylistTracks)
-    });
+  debug(`Fetching playlist tracks (${playlistId})`);
+  return createPaginationStream(function getPlaylistTracks() {
+    return api.getPlaylistTracks(username, playlistId);
+  });
 }
 
-function getAllItemsFromPaginatedEndpoint(endpointFunction) {
-  // TODO: use streams to handle the pages as they come
-  return new Promise(function (resolve, reject) {
-    debug(`Fetching paginated endpoint: "${endpointFunction.name}"`);
+function createPaginationStream(endpointFn) {
+  let offset = 0;
+  let limit = 20;
+  let totalItemsCount = undefined;
+  let loadedItemsCount = 0;
 
-    let totalItems = [];
-    let totalItemsCount = null;
-    let offset = 0;
-    let limit = 20;
+  return highland(function (push, next) {
+    if (loadedItemsCount === 0)
+      debug(`Fetch paginated: "${endpointFn.name}"`);
+    debug(`Fetch paginated: loading ${offset}..${offset + limit}`);
 
-    async.doWhilst(
-      function iteratee(done) {
-        endpointFunction({
-            limit: limit,
-            offset: offset
-          })
-          .then(data => {
-            totalItemsCount = data.body.total;
-            offset += limit;
+    endpointFn({
+      limit: limit,
+      offset: offset
+    })
+      .then(data => {
+        offset += limit;
+        totalItemsCount = data.body.total;
+        loadedItemsCount += data.body.items.length;
 
-            totalItems = totalItems.concat(data.body.items);
+        debug(`Fetch paginated: loaded  ${loadedItemsCount}/${totalItemsCount}`);
+        debug(`Fetch paginated: pushing down the stream`);
 
-            debug(`Fetch ${totalItems.length}/${totalItemsCount}`);
+        // put the items down to the stream
+        push(null, data.body.items);
 
-            done();
-          })
-          .catch(err => done(err));
-      },
-      function test() {
-        return totalItems.length < totalItemsCount;
-      },
-      function callback(err) {
-        if (err) {
-          reject(err);
-          return;
+        if (loadedItemsCount >= totalItemsCount) {
+          debug(`Fetch paginated: all finish`);
+          push(null, highland.nil);
+        } else {
+          debug(`Fetch paginated: continue`);
+          next();
         }
-        resolve(totalItems);
-      });
+      })
+      .catch(err => push(err));
   });
 }
 
 module.exports = {
+  login,
   getAllUserPlaylists,
   getAllPlaylistTracks
 };

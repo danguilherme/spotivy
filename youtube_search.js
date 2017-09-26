@@ -11,7 +11,7 @@ Youtube.authenticate({
 
 function searchVideo(term) {
   return new Promise(function (resolve, reject) {
-    debug(`Searching for video: "${term}"`);
+    debug(`Search video: search "${term}"`);
 
     Youtube.search.list({
       part: 'snippet',
@@ -24,7 +24,7 @@ function searchVideo(term) {
         return;
       }
 
-      debug(`${results.items.length} item(s) returned`);
+      debug(`Search video: ${results.items.length} item(s) returned`);
       resolve(results.items);
     });
   });
@@ -33,25 +33,22 @@ function searchVideo(term) {
 function searchMusicVideo(term) {
   return searchVideo(term)
     .then(results => {
-      let foundVideo;
-      let videos = results
+      let foundVideo = results[0];
+      let goodResults = results
         .slice(0, 5) // in the first 5 results...
-        .filter(x => contains(x.snippet.channelTitle, 'VEVO') ||
-          contains(x.snippet.channelTitle.toLowerCase(), 'official') ||
-          contains(x.snippet.title.toLowerCase(), 'official'));
-      if (videos.length) {
-        debug(`${videos.length} of the videos are good results:\n\t` +
-          videos.map(x => `"${x.snippet.title}", by ${x.snippet.channelTitle}`).join(',\n\t'));
+        .filter(isGoodMusicVideoContent);
+
+      if (!goodResults.length) {
+        debug(`Search music video: None of the videos is considered a good result`);
+      } else {
+        debug(`Search music video: ${goodResults.length} of the videos are good results:\n\t` +
+          goodResults.map((x, idx) => `${idx + 1}. "${x.snippet.title}", by ${x.snippet.channelTitle}`).join(',\n\t'));
 
         // if found a good result (VEVO, official video, ...)
-        foundVideo = videos[0];
-      } else {
-        debug(`None of the videos is considered a good result`);
-        // if not, return the first match
-        foundVideo = results[0];
+        foundVideo = goodResults[0];
       }
 
-      debug(`Returning first: "${foundVideo.snippet.title}", by ${foundVideo.snippet.channelTitle}`);
+      debug(`Search music video: selected "${foundVideo.snippet.title}", by ${foundVideo.snippet.channelTitle}`);
       return foundVideo;
     })
     .catch(x => console.error(x));
@@ -60,10 +57,16 @@ function searchMusicVideo(term) {
 function searchMusicAudio(term) {
   return searchVideo(`${term} audio`)
     .then(results => {
-      debug(`Returning first: "${results[0].snippet.title}", by ${results[0].snippet.channelTitle}`);
+      debug(`Search music audio: selected "${results[0].snippet.title}", by ${results[0].snippet.channelTitle}`);
       return results[0];
     })
     .catch(x => console.error(x));
+}
+
+function isGoodMusicVideoContent(videoSearchResultItem) {
+  return contains(videoSearchResultItem.snippet.channelTitle, 'VEVO') ||
+    contains(videoSearchResultItem.snippet.channelTitle.toLowerCase(), 'official') ||
+    contains(videoSearchResultItem.snippet.title.toLowerCase(), 'official')
 }
 
 function contains(string, content) {
