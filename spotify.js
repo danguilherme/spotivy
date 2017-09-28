@@ -1,23 +1,19 @@
 const SpotifyWebApi = require('spotify-web-api-node');
 const highland = require('highland');
-const config = require('./config.json');
-const debug = require('./debug');
 
 let api = null;
 
-function login() {
+function login(clientId, clientSecret, { logger } = {}) {
   return new Promise(function (resolve, reject) {
     if (!!api) {
       resolve(api);
       return;
     }
 
-    debug(`Spotify login`);
+    if (logger)
+      logger.debug(`Spotify login`);
 
-    api = new SpotifyWebApi({
-      clientId: config.spotify.clientId,
-      clientSecret: config.spotify.clientSecret
-    });
+    api = new SpotifyWebApi({ clientId, clientSecret });
 
     // Retrieve an access token.
     api.clientCredentialsGrant()
@@ -27,36 +23,40 @@ function login() {
 
         resolve(api);
       }, function (err) {
-        console.log('Something went wrong when retrieving an access token', err);
+        console.error('Something went wrong when retrieving an access token', err);
         reject(err);
       });
   })
 }
 
-function getAllUserPlaylists(username) {
-  debug(`Fetching playlists of ${username}`);
+function getAllUserPlaylists(username, { logger } = {}) {
+  if (logger)
+    logger.debug(`Fetching playlists of ${username}`);
   return createPaginationStream(function getPlaylistTracks() {
     return api.getUserPlaylists(username);
-  });
+  }, { logger });
 }
 
-function getAllPlaylistTracks(username, playlistId) {
-  debug(`Fetching playlist tracks (${playlistId})`);
+function getAllPlaylistTracks(username, playlistId, { logger } = {}) {
+  if (logger)
+    logger.debug(`Fetching playlist tracks (${playlistId})`);
   return createPaginationStream(function getPlaylistTracks() {
     return api.getPlaylistTracks(username, playlistId);
-  });
+  }, { logger });
 }
 
-function createPaginationStream(endpointFn) {
+function createPaginationStream(endpointFn, { logger } = {}) {
   let offset = 0;
   let limit = 20;
   let totalItemsCount = undefined;
   let loadedItemsCount = 0;
 
   return highland(function (push, next) {
-    if (loadedItemsCount === 0)
-      debug(`Fetch paginated: "${endpointFn.name}"`);
-    debug(`Fetch paginated: loading ${offset}..${offset + limit}`);
+    if (logger) {
+      if (loadedItemsCount === 0)
+        logger.debug(`Fetch paginated: "${endpointFn.name}"`);
+      logger.debug(`Fetch paginated: loading ${offset}..${offset + limit}`);
+    }
 
     endpointFn({
       limit: limit,
@@ -67,17 +67,21 @@ function createPaginationStream(endpointFn) {
         totalItemsCount = data.body.total;
         loadedItemsCount += data.body.items.length;
 
-        debug(`Fetch paginated: loaded  ${loadedItemsCount}/${totalItemsCount}`);
-        debug(`Fetch paginated: pushing down the stream`);
+        if (logger) {
+          logger.debug(`Fetch paginated: loaded  ${loadedItemsCount}/${totalItemsCount}`);
+          logger.debug(`Fetch paginated: pushing down the stream`);
+        }
 
         // put the items down to the stream
         push(null, data.body.items);
 
         if (loadedItemsCount >= totalItemsCount) {
-          debug(`Fetch paginated: all finish`);
+          if (logger)
+            logger.debug(`Fetch paginated: all finish`);
           push(null, highland.nil);
         } else {
-          debug(`Fetch paginated: continue`);
+          if (logger)
+            logger.debug(`Fetch paginated: continue`);
           next();
         }
       })

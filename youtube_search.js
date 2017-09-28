@@ -1,17 +1,19 @@
-const config = require('./config.json');
 const Youtube = require('youtube-api');
-const debug = require('./debug');
 
-Youtube.authenticate({
-  type: 'key',
-  key: config.youtube.key
-});
+function login(key) {
+  return new Promise((resolve, reject) => {
+    const result = Youtube.authenticate({
+      type: 'key',
+      key
+    });
+    resolve(result);
+  });
+}
 
-
-
-function searchVideo(term) {
+function searchVideo(term, { logger } = {}) {
   return new Promise(function (resolve, reject) {
-    debug(`Search video: search "${term}"`);
+    if (logger)
+      logger.debug(`Search video: search "${term}"`);
 
     Youtube.search.list({
       part: 'snippet',
@@ -24,14 +26,15 @@ function searchVideo(term) {
         return;
       }
 
-      debug(`Search video: ${results.items.length} item(s) returned`);
+      if (logger)
+        logger.debug(`Search video: ${results.items.length} item(s) returned`);
       resolve(results.items);
     });
   });
 }
 
-function searchMusicVideo(term) {
-  return searchVideo(term)
+function searchMusicVideo(term, { logger } = {}) {
+  return searchVideo(term, { logger })
     .then(results => {
       let foundVideo = results[0];
       let goodResults = results
@@ -39,25 +42,29 @@ function searchMusicVideo(term) {
         .filter(isGoodMusicVideoContent);
 
       if (!goodResults.length) {
-        debug(`Search music video: None of the videos is considered a good result`);
+        if (logger)
+          logger.debug(`Search music video: None of the videos is considered a good result`);
       } else {
-        debug(`Search music video: ${goodResults.length} of the videos are good results:\n\t` +
-          goodResults.map((x, idx) => `${idx + 1}. "${x.snippet.title}", by ${x.snippet.channelTitle}`).join(',\n\t'));
+        if (logger)
+          logger.debug(`Search music video: ${goodResults.length} of the videos are good results:\n\t` +
+            goodResults.map((x, idx) => `${idx + 1}. "${x.snippet.title}", by ${x.snippet.channelTitle}`).join(',\n\t'));
 
         // if found a good result (VEVO, official video, ...)
         foundVideo = goodResults[0];
       }
 
-      debug(`Search music video: selected "${foundVideo.snippet.title}", by ${foundVideo.snippet.channelTitle}`);
+      if (logger)
+        logger.debug(`Search music video: selected "${foundVideo.snippet.title}", by ${foundVideo.snippet.channelTitle}`);
       return foundVideo;
     })
     .catch(x => console.error(x));
 }
 
-function searchMusicAudio(term) {
-  return searchVideo(`${term} audio`)
+function searchMusicAudio(term, { logger } = {}) {
+  return searchVideo(`${term} audio`, { logger })
     .then(results => {
-      debug(`Search music audio: selected "${results[0].snippet.title}", by ${results[0].snippet.channelTitle}`);
+      if (logger)
+        logger.debug(`Search music audio: selected "${results[0].snippet.title}", by ${results[0].snippet.channelTitle}`);
       return results[0];
     })
     .catch(x => console.error(x));
@@ -74,6 +81,7 @@ function contains(string, content) {
 }
 
 module.exports = {
+  login,
   searchVideo,
   searchMusicVideo,
   searchMusicAudio
