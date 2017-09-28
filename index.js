@@ -40,9 +40,9 @@ function init() {
       beforeCommand(logger);
       const config = loadConfig(configPath, Object.assign({}, options, args), { logger });
 
-      logger.info(`Saving ${config.format === 'video' ? 'videos' : 'audios'} to '${config.output}'`);
+      info(logger, `Saving ${config.format === 'video' ? 'videos' : 'audios'} to '${config.output}'\n`);
 
-      cmdDownloadPlaylists(args.username, {
+      cmd_user(args.username, {
         spotifyClientId: config.spotifyClientId,
         spotifyClientSecret: config.spotifyClientSecret,
         youtubeKey: config.youtubeKey,
@@ -54,39 +54,92 @@ function init() {
 
     // command: download playlist
     .command('playlist')
-    .help('Download playlist')
+    .help('Download tracks from the given playlist')
+    .argument('<playlist...>', 'Playlist IDs (may be more than one)')
     .action(console.log)
 
     // command: download track
     .command('track')
     .help('Download single track')
-    .action(console.log);
+    .argument('<track...>', 'Track IDs (may be more than one)')
+    .option('-o, --output <output>', 'Location where to save the downloaded media', /\w*/, defaultOutputPath)
+    .option('-f, --format <format>', "The format of the file to download. Either 'audio' or 'video'", ["audio", "video"], 'video')
+    .option('-a, --audio', "Download tracks as audio. Same as --format audio", caporal.BOOLEAN, false)
+    .option('--spotify-client-id [client-id]', 'Spotify app client ID (from https://developer.spotify.com/my-applications/)')
+    .option('--spotify-client-secret [client-secret]', 'Spotify app client secret (from https://developer.spotify.com/my-applications/)')
+    .option('--youtube-key [key]', 'Youtube API key (from https://console.developers.google.com)')
+    .action((args, options, logger) => {
+      beforeCommand(logger);
+      const config = loadConfig(configPath, Object.assign({}, options, args), { logger });
+
+      info(logger, `Saving media to '${config.output}'\n`);
+
+      cmd_track(args.track, {
+        spotifyClientId: config.spotifyClientId,
+        spotifyClientSecret: config.spotifyClientSecret,
+        youtubeKey: config.youtubeKey,
+        format: config.format,
+        output: config.output,
+        logger
+      })
+        .then(() => afterCommand(logger));
+    });
   caporal.parse(process.argv);
 }
 
 function beforeCommand(logger) {
-  logger.info();
-  logger.info(chalk.bold.green(`[${pkg.name} v${pkg.version}]`));
-  logger.info();
+  info(logger, chalk.bold.green(`[${pkg.name} v${pkg.version}]`));
 }
 
-function cmdDownloadPlaylists(username,
+function afterCommand(logger) {
+  info(logger);
+  info(logger, chalk.bold.green(`[${pkg.name} v${pkg.version}]`), 'Finished successfuly');
+}
+
+function cmd_user(username,
   { spotifyClientId, spotifyClientSecret, youtubeKey,
     format, output, logger } = {}) {
 
-  spotify
-    .login(spotifyClientId, spotifyClientSecret, { logger })
-    .then(_ => youtube.login(youtubeKey))
-    .then(function () {
-      return downloadUserPlaylists(username, { format, output, logger });
-    });
+  return new Promise((resolve, reject) => {
+    spotify
+      .login(spotifyClientId, spotifyClientSecret, { logger })
+      .then(() => youtube.login(youtubeKey))
+      .then(function () {
+        return downloadUserPlaylists(username, { format, output, logger })
+          .on('end', resolve)
+          .resume();
+      });
+  });
+}
+
+function cmd_playlist(playlists) {
+
+}
+
+function cmd_track(tracks,
+  { spotifyClientId, spotifyClientSecret, youtubeKey,
+    format, output, logger } = {}) {
+
+  return new Promise((resolve, reject) => {
+    spotify.login(spotifyClientId, spotifyClientSecret, { logger })
+      .then(() => youtube.login(youtubeKey))
+      .then(() => {
+        highland(tracks)
+          .flatMap(track => highland(spotify.getTrack(track)))
+          .flatMap(track => downloadTrack(track, { format, path: output, logger }))
+          .on('end', resolve)
+          .resume();
+      });
+  });
 }
 
 init();
 
 
-
-
+// https://open.spotify.com/track/0SFJQqnU0k42NYaLb3qqTx
+// https://open.spotify.com/track/31acMiV67UgKn1ScFChFxo
+// https://open.spotify.com/track/52K4Nl7eVNqUpUeJeWJlwT
+// https://open.spotify.com/track/5tXyNhNcsnn7HbcABntOSf
 
 function downloadUserPlaylists(username, { format, output, logger } = {}) {
   let path = output;
@@ -94,8 +147,9 @@ function downloadUserPlaylists(username, { format, output, logger } = {}) {
   let currentMetadataPath = null;
   let currentPlaylist = null;
   let currentPath = null;
+  let currentTrack = null;
 
-  spotify
+  return spotify
     .getAllUserPlaylists(username, { logger })
     .sequence()
     .flatMap(playlist => {
@@ -103,7 +157,6 @@ function downloadUserPlaylists(username, { format, output, logger } = {}) {
       currentPath = fsPath.join(path, createFolderName(currentPlaylist.name));
       currentMetadataPath = fsPath.join(currentPath, METADATA_FILE);
       currentMetadata = loadMetadata(currentMetadataPath);
-
 
       console.log(chalk.bold.blue("[Downloading playlist]"), currentPlaylist.name);
       return spotify.getAllPlaylistTracks(currentPlaylist.owner.id, currentPlaylist.id, { logger });
@@ -118,6 +171,40 @@ function downloadUserPlaylists(username, { format, output, logger } = {}) {
       return shouldDownload;
     })
     .flatMap(track => {
+      currentTrack = track;
+
+      const downloadPromise = downloadTrack(track, { format, path: currentPath, logger });
+      return highland(downloadPromise)
+        .on('error', err => {
+          console.error(chalk.bold.red("     [Download failed]"), err.message || err);
+        });
+    })
+    .each(() => {
+      updateMetadata(currentTrack, { metadata: currentMetadata });
+      saveMetadata(currentMetadata, currentMetadataPath);
+    });
+}
+
+/**
+ * Download all tracks from the given playlist
+ * 
+ * @param {SpotifyPlaylist} playlist 
+ * @param {*} param1 
+ */
+function downloadPlaylist(playlist, { metadata, metadataPath, logger } = {}) {
+  info(logger, chalk.bold.blue("[Downloading playlist]"), playlist.name);
+
+  return spotify.getAllPlaylistTracks(playlist.owner.id, playlist.id, { logger })
+    .sequence()
+    .map(playlistTrack => playlistTrack.track)
+    // skip downloaded songs
+    .filter(track => {
+      let shouldDownload = !isTrackDownloaded(track.id, currentMetadata);
+      if (!shouldDownload && logger)
+        debug(logger, `Skip "${track.name}"`);
+      return shouldDownload;
+    })
+    .flatMap(track => {
       console.log(chalk.bold.blue("   [Downloading track]"), track.name);
 
       const downloadPromise = downloadTrack(track, { format, path: currentPath, logger });
@@ -129,9 +216,7 @@ function downloadUserPlaylists(username, { format, output, logger } = {}) {
     .each(track => {
       updateMetadata(track, { metadata: currentMetadata });
       saveMetadata(currentMetadata, currentMetadataPath);
-    })
-    .on('error', err => console.error(err))
-    .toArray();
+    });
 }
 
 /**
@@ -143,12 +228,11 @@ function downloadUserPlaylists(username, { format, output, logger } = {}) {
  * - path: where the track will be saved on disk
  */
 function downloadTrack(track, { format = 'video', path = './', logger } = {}) {
-  let fileName = `${track.artists[0].name} - ${track.name}`;
-  let metadataPath = fsPath.join(path, METADATA_FILE);
+  info(logger, chalk.bold.blue("   [Downloading track]"), track.name);
 
+  let fileName = `${track.artists[0].name} - ${track.name}`;
   let downloadFunction = format === 'video' ? downloadYoutubeVideo : downloadYoutubeAudio;
-  return downloadFunction(fileName, path, { logger })
-    .then(_ => track);
+  return downloadFunction(fileName, path, { logger });
 }
 
 function isTrackDownloaded(trackId, metadata = null, { metadataPath = './' } = {}) {
@@ -177,40 +261,27 @@ function updateMetadata(track, { metadata = null, metadataPath = './' } = {}) {
  *
  * @param {string} name The name of the video to look for
  * @param {string} [location='./'] Where the video file should be saved
- * @returns {PromiseLike}
+ * @returns {Highland.Stream}
  */
 function downloadYoutubeVideo(name, location = './', { logger } = {}) {
-  return new Promise(function (resolve, reject) {
-    let fullPath = fsPath.join(location, `${createFolderName(name)}.mp4`);
-    // setup folders
-    if (!fs.existsSync(location))
-      mkdirp.sync(location);
+  let fullPath = fsPath.join(location, `${createFolderName(name)}.mp4`);
+  // setup folders
+  if (!fs.existsSync(location))
+    mkdirp.sync(location);
 
-    youtube.searchMusicVideo(name)
-      .then(video => {
-        if (!video) {
-          reject("Video não encontrado");
-          return;
-        }
+  return highland(youtube.searchMusicVideo(name))
+    .map(video => {
+      if (!video) {
+        throw new Error("Video não encontrado");
+        return;
+      }
 
-        let downloadUrl = `https://www.youtube.com/watch?v=${video.id.videoId}`;
-        if (logger)
-          logger.debug(`Downloading video from url: ${downloadUrl}`);
+      let downloadUrl = `https://www.youtube.com/watch?v=${video.id.videoId}`;
+      debug(logger, `Downloading video from url: ${downloadUrl}`);
 
-        ytdl(downloadUrl, {
-          quality: 18 // 360p
-        })
-          .on('error', err => reject(err))
-          .pipe(fs.createWriteStream(fullPath))
-          .on('error', err => reject(err))
-          .on('finish', _ => {
-            resolve({
-              path: fullPath,
-              video
-            });
-          });
-      });
-  });
+      return ytdl(downloadUrl, { quality: 18 /* 360p */ })
+        .pipe(fs.createWriteStream(fullPath));
+    });
 }
 
 /**
@@ -218,61 +289,49 @@ function downloadYoutubeVideo(name, location = './', { logger } = {}) {
  *
  * @param {string} name The name of the video to look for
  * @param {string} [location='./'] Where the audio file should be saved
- * @returns {PromiseLike}
+ * @returns {Highland.Stream}
  */
 function downloadYoutubeAudio(name, location = './', { logger } = {}) {
-  return new Promise(function (resolve, reject) {
+  /**
+   * Example string: audio/mp4; codecs="mp4a.40.2"
+   * - Group #0: audio/mp4; codecs="mp4a.40.2"
+   * - Group #1: audio/mp4
+   * - Group #2: audio
+   * - Group #3: mp4
+   * - Group #4: mp4a.40.2
+   */
+  let formatTypeRegex = /((.*)\/(.*)); codecs="(.*)"/;
 
-    /**
-     * Example string: audio/mp4; codecs="mp4a.40.2"
-     * Group #0: audio/mp4; codecs="mp4a.40.2"
-     * Group #1: audio/mp4
-     * Group #2: audio
-     * Group #3: mp4
-     * Group #4: mp4a.40.2
-     */
-    let formatTypeRegex = /((.*)\/(.*)); codecs="(.*)"/;
+  let fullPath = fsPath.join(location, `${createFolderName(name)}.mp3`);
+  // setup folders
+  if (!fs.existsSync(location))
+    mkdirp.sync(location);
 
-    let fullPath = fsPath.join(location, `${createFolderName(name)}.mp3`);
-    // setup folders
-    if (!fs.existsSync(location))
-      mkdirp.sync(location);
+  return highland(youtube.searchMusicAudio(name))
+    .map(video => {
+      if (!video) {
+        reject("Áudio não encontrado");
+        return;
+      }
 
-    youtube.searchMusicAudio(name)
-      .then(video => {
-        if (!video) {
-          reject("Áudio não encontrado");
-          return;
+      let downloadUrl = `https://www.youtube.com/watch?v=${video.id.videoId}`;
+      debug(logger, `Downloading audio from url: ${downloadUrl}`);
+
+      return ytdl(downloadUrl, {
+        filter: function (f) {
+          if (!f.type) return false;
+
+          let [, typeAndFormat, type, format, codec] = formatTypeRegex.exec(f.type);
+          let shouldDownload = type === 'audio' && format === 'mp4';
+
+          if (shouldDownload && logger)
+            debug(logger, `File type: ${typeAndFormat} (${codec})`);
+
+          return shouldDownload;
         }
-
-        let downloadUrl = `https://www.youtube.com/watch?v=${video.id.videoId}`;
-        if (logger)
-          logger.debug(`Downloading audio from url: ${downloadUrl}`);
-
-        ytdl(downloadUrl, {
-          filter: function (f) {
-            if (!f.type) return false;
-
-            let [, typeAndFormat, type, format, codec] = formatTypeRegex.exec(f.type);
-            let shouldDownload = type === 'audio' && format === 'mp4';
-
-            if (shouldDownload && logger)
-              logger.debug(`File type: ${typeAndFormat} (${codec})`);
-
-            return shouldDownload;
-          }
-        })
-          .on('error', err => reject(err))
-          .pipe(fs.createWriteStream(fullPath))
-          .on('error', err => reject(err))
-          .on('finish', _ => {
-            resolve({
-              path: fullPath,
-              video
-            });
-          });
-      });
-  });
+      })
+        .pipe(fs.createWriteStream(fullPath));
+    });
 }
 
 function loadMetadata(location) {
@@ -319,8 +378,22 @@ function loadConfig(configFilePath, parsedArgs, { logger } = {}) {
 
   if (config.audio) config.format = 'audio';
 
-  if (logger)
-    logger.debug(`Loaded options:\n`, JSON.stringify(config, null, 2));
+  debug(logger, `Loaded options:\n`, JSON.stringify(config, null, 2));
 
   return config;
+}
+
+
+// helper
+function info(logger) {
+  if (logger) {
+    let [, ...args] = arguments;
+    logger.info.apply(logger, args);
+  }
+}
+function debug(logger) {
+  if (logger) {
+    let [, ...args] = arguments;
+    logger.debug.apply(logger, args);
+  }
 }
