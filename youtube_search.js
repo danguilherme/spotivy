@@ -1,5 +1,7 @@
 const Youtube = require('youtube-api');
 
+const { debug } = require('./log');
+
 function login(key) {
   return new Promise((resolve, reject) => {
     const result = Youtube.authenticate({
@@ -12,8 +14,7 @@ function login(key) {
 
 function searchVideo(term, { logger } = {}) {
   return new Promise(function (resolve, reject) {
-    if (logger)
-      logger.debug(`Search video: search "${term}"`);
+    debug(logger, `Search video: search "${term}"`);
 
     Youtube.search.list({
       part: 'snippet',
@@ -26,8 +27,7 @@ function searchVideo(term, { logger } = {}) {
         return;
       }
 
-      if (logger)
-        logger.debug(`Search video: ${results.items.length} item(s) returned`);
+      debug(logger, `Search video: ${results.items.length} item(s) returned`);
       resolve(results.items);
     });
   });
@@ -42,19 +42,19 @@ function searchMusicVideo(term, { logger } = {}) {
         .filter(isGoodMusicVideoContent);
 
       if (!goodResults.length) {
-        if (logger)
-          logger.debug(`Search music video: None of the videos is considered a good result`);
+        debug(logger, `Search music video: None of the videos is considered a good result`);
       } else {
-        if (logger)
-          logger.debug(`Search music video: ${goodResults.length} of the videos are good results:\n\t` +
-            goodResults.map((x, idx) => `${idx + 1}. "${x.snippet.title}", by ${x.snippet.channelTitle}`).join(',\n\t'));
+        debug(
+          logger,
+          `Search music video: ${goodResults.length} of the videos are good results:`,
+          goodResults.map((x, idx) => `${idx + 1}. "${x.snippet.title}", by ${x.snippet.channelTitle}`)
+        );
 
         // if found a good result (VEVO, official video, ...)
         foundVideo = goodResults[0];
       }
 
-      if (logger)
-        logger.debug(`Search music video: selected "${foundVideo.snippet.title}", by ${foundVideo.snippet.channelTitle}`);
+      debug(logger, `Search music video: selected "${foundVideo.snippet.title}", by ${foundVideo.snippet.channelTitle}`);
       return foundVideo;
     })
     .catch(x => console.error(x));
@@ -63,8 +63,7 @@ function searchMusicVideo(term, { logger } = {}) {
 function searchMusicAudio(term, { logger } = {}) {
   return searchVideo(`${term} audio`, { logger })
     .then(results => {
-      if (logger)
-        logger.debug(`Search music audio: selected "${results[0].snippet.title}", by ${results[0].snippet.channelTitle}`);
+      debug(logger, `Search music audio: selected "${results[0].snippet.title}", by ${results[0].snippet.channelTitle}`);
       return results[0];
     })
     .catch(x => console.error(x));

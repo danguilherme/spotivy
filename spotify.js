@@ -1,6 +1,8 @@
 const SpotifyWebApi = require('spotify-web-api-node');
 const highland = require('highland');
 
+const { debug } = require('./log');
+
 let api = null;
 
 function login(clientId, clientSecret, { logger } = {}) {
@@ -10,8 +12,7 @@ function login(clientId, clientSecret, { logger } = {}) {
       return;
     }
 
-    if (logger)
-      logger.debug(`Spotify login`);
+    debug(logger, `Spotify login`);
 
     api = new SpotifyWebApi({ clientId, clientSecret });
 
@@ -34,16 +35,14 @@ function getTrack(trackId, { logger } = {}) {
 }
 
 function getAllUserPlaylists(username, { logger } = {}) {
-  if (logger)
-    logger.debug(`Fetching playlists of ${username}`);
+  debug(logger, `Fetching playlists of ${username}`);
   return createPaginationStream(function getPlaylistTracks() {
     return api.getUserPlaylists(username);
   }, { logger });
 }
 
 function getAllPlaylistTracks(username, playlistId, { logger } = {}) {
-  if (logger)
-    logger.debug(`Fetching playlist tracks (${playlistId})`);
+  debug(logger, `Fetching playlist tracks (${playlistId})`);
   return createPaginationStream(function getPlaylistTracks() {
     return api.getPlaylistTracks(username, playlistId);
   }, { logger });
@@ -56,11 +55,9 @@ function createPaginationStream(endpointFn, { logger } = {}) {
   let loadedItemsCount = 0;
 
   return highland(function (push, next) {
-    if (logger) {
-      if (loadedItemsCount === 0)
-        logger.debug(`Fetch paginated: "${endpointFn.name}"`);
-      logger.debug(`Fetch paginated: loading ${offset}..${offset + limit}`);
-    }
+    if (loadedItemsCount === 0)
+      debug(logger, `Fetch paginated: "${endpointFn.name}"`);
+    debug(logger, `Fetch paginated: loading ${offset}..${offset + limit}`);
 
     endpointFn({
       limit: limit,
@@ -71,21 +68,17 @@ function createPaginationStream(endpointFn, { logger } = {}) {
         totalItemsCount = data.body.total;
         loadedItemsCount += data.body.items.length;
 
-        if (logger) {
-          logger.debug(`Fetch paginated: loaded  ${loadedItemsCount}/${totalItemsCount}`);
-          logger.debug(`Fetch paginated: pushing down the stream`);
-        }
+        debug(logger, `Fetch paginated: loaded  ${loadedItemsCount}/${totalItemsCount}`);
+        debug(logger, `Fetch paginated: pushing down the stream`);
 
         // put the items down to the stream
         push(null, data.body.items);
 
         if (loadedItemsCount >= totalItemsCount) {
-          if (logger)
-            logger.debug(`Fetch paginated: all finish`);
+          debug(logger, `Fetch paginated: all finish`);
           push(null, highland.nil);
         } else {
-          if (logger)
-            logger.debug(`Fetch paginated: continue`);
+          debug(logger, `Fetch paginated: continue`);
           next();
         }
       })

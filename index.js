@@ -1,23 +1,24 @@
 #!/usr/bin/env node
 
 const caporal = require('caporal');
+const leftPad = require('left-pad');
 const fs = require('fs');
 const fsPath = require('path');
 const ytdl = require('ytdl-core');
 const mkdirp = require('mkdirp');
 const chalk = require('chalk');
 const highland = require('highland');
+
 const pkg = require('./package.json');
 const youtube = require('./youtube_search');
 const spotify = require('./spotify');
+const { INFO_COLUMN_WIDTH } = require('./constants');
+const { info, debug } = require('./log');
 
 const METADATA_FILE = ".downloaded";
 const cwd = process.cwd();
 const defaultOutputPath = fsPath.join(cwd, 'media');
 const configPath = fsPath.join(cwd, 'config.json');
-
-// old debug:
-// console.log.apply(this, [chalk.reset.yellow('[DEBUG]'), chalk.reset.gray(...arguments)]);
 
 function init() {
   caporal
@@ -125,7 +126,7 @@ function cmd_track(tracks,
       .then(() => {
         highland(tracks)
           .flatMap(track => highland(spotify.getTrack(track)))
-          .flatMap(track => downloadTrack(track, { format, path: output, logger }))
+          .flatMap(track => highland(downloadTrack(track, { format, path: output, logger })))
           .on('end', resolve)
           .resume();
       });
@@ -157,7 +158,7 @@ function downloadUserPlaylists(username, { format, output, logger } = {}) {
       currentMetadataPath = fsPath.join(currentPath, METADATA_FILE);
       currentMetadata = loadMetadata(currentMetadataPath);
 
-      console.log(chalk.bold.blue("[Downloading playlist]"), currentPlaylist.name);
+      console.log(chalk.bold.blue(leftPad("[Downloading playlist]", INFO_COLUMN_WIDTH)), currentPlaylist.name);
       return spotify.getAllPlaylistTracks(currentPlaylist.owner.id, currentPlaylist.id, { logger });
     })
     .sequence()
@@ -166,7 +167,7 @@ function downloadUserPlaylists(username, { format, output, logger } = {}) {
     .filter(track => {
       let shouldDownload = !isTrackDownloaded(track.id, currentMetadata);
       if (!shouldDownload)
-        logger.debug(`Skip "${track.name}"`);
+        debug(logger, `Skip "${track.name}"`);
       return shouldDownload;
     })
     .flatMap(track => {
@@ -191,7 +192,7 @@ function downloadUserPlaylists(username, { format, output, logger } = {}) {
  * @param {*} param1 
  */
 function downloadPlaylist(playlist, { metadata, metadataPath, logger } = {}) {
-  info(logger, chalk.bold.blue("[Downloading playlist]"), playlist.name);
+  info(logger, chalk.bold.blue(leftPad("[Downloading playlist]", INFO_COLUMN_WIDTH)), playlist.name);
 
   return spotify.getAllPlaylistTracks(playlist.owner.id, playlist.id, { logger })
     .sequence()
@@ -204,12 +205,12 @@ function downloadPlaylist(playlist, { metadata, metadataPath, logger } = {}) {
       return shouldDownload;
     })
     .flatMap(track => {
-      console.log(chalk.bold.blue("   [Downloading track]"), track.name);
+      info(chalk.bold.blue(leftPad("[Downloading track]", INFO_COLUMN_WIDTH)), track.name);
 
       const downloadPromise = downloadTrack(track, { format, path: currentPath, logger });
       return highland(downloadPromise)
         .on('error', err => {
-          console.error(chalk.bold.red("     [Download failed]"), err.message || err);
+          console.error(chalk.bold.red(leftPad("[Download failed]", INFO_COLUMN_WIDTH)), err.message || err);
         });
     })
     .each(track => {
@@ -227,7 +228,7 @@ function downloadPlaylist(playlist, { metadata, metadataPath, logger } = {}) {
  * - path: where the track will be saved on disk
  */
 function downloadTrack(track, { format = 'video', path = './', logger } = {}) {
-  info(logger, chalk.bold.blue("   [Downloading track]"), track.name);
+  info(logger, chalk.bold.blue(leftPad("[Downloading track]", INFO_COLUMN_WIDTH)), track.name);
 
   let fileName = `${track.artists[0].name} - ${track.name}`;
   let downloadFunction = format === 'video' ? downloadYoutubeVideo : downloadYoutubeAudio;
@@ -260,7 +261,7 @@ function updateMetadata(track, { metadata = null, metadataPath = './' } = {}) {
  *
  * @param {string} name The name of the video to look for
  * @param {string} [location='./'] Where the video file should be saved
- * @returns {Highland.Stream}
+ * @returns {Promise}
  */
 function downloadYoutubeVideo(name, location = './', { logger } = {}) {
   let fullPath = fsPath.join(location, `${createFolderName(name)}.mp4`);
@@ -268,22 +269,26 @@ function downloadYoutubeVideo(name, location = './', { logger } = {}) {
   if (!fs.existsSync(location))
     mkdirp.sync(location);
 
-  let writeStream = fs.createWriteStream(fullPath);
-
-  return highland(youtube.searchMusicVideo(name))
-    .map(video => {
+  return youtube.searchMusicVideo(name, { logger })
+    .then(video => {
       if (!video) {
-        throw new Error("Video não encontrado");
+        throw new Error("Video not found");
         return;
       }
 
       let downloadUrl = `https://www.youtube.com/watch?v=${video.id.videoId}`;
-      debug(logger, `Downloading video from url: ${downloadUrl}`);
 
-      return highland(ytdl(downloadUrl, { quality: 18 /* 360p */ }))
+      return downloadUrl
+    })
+    .then(videoUrl => new Promise((resolve, reject) => {
+      debug(logger, `Downloading video from url: ${videoUrl}`);
+
+      let writeStream = fs.createWriteStream(fullPath);
+      ytdl(videoUrl, { quality: 18 /* 360p */ })
         .pipe(writeStream)
-        .on('finish', () => console.log('Finish write:', name));
-    });
+        .on('finish', resolve)
+        .on('error', reject);
+    }));
 }
 
 /**
@@ -383,19 +388,4 @@ function loadConfig(configFilePath, parsedArgs, { logger } = {}) {
   debug(logger, `Loaded options:\n`, JSON.stringify(config, null, 2));
 
   return config;
-}
-
-
-// helper
-function info(logger) {
-  if (logger) {
-    let [, ...args] = arguments;
-    logger.info.apply(logger, args);
-  }
-}
-function debug(logger) {
-  if (logger) {
-    let [, ...args] = arguments;
-    logger.debug.apply(logger, args);
-  }
 }
