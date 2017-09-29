@@ -6,7 +6,7 @@ Download all tracks from your Spotify playlists as videos or MP3.
 ## Configuration
 1.  Install the CLI
     ```bash
-    node install -g spotivy
+    npm install -g spotivy
     ```
 1.  Copy [`config.example.json`](https://github.com/danguilherme/spotivy/blob/v0.4.0/config.example.json) in the root directory as `config.json`.
     1.  Create an application on [Spotify Developers website](https://developer.spotify.com/my-applications/).

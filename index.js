@@ -20,7 +20,6 @@ const configPath = fsPath.join(cwd, 'config.json');
 // console.log.apply(this, [chalk.reset.yellow('[DEBUG]'), chalk.reset.gray(...arguments)]);
 
 function init() {
-
   caporal
     .name('spotivy')
     .help(pkg.description)
@@ -166,7 +165,7 @@ function downloadUserPlaylists(username, { format, output, logger } = {}) {
     // skip downloaded songs
     .filter(track => {
       let shouldDownload = !isTrackDownloaded(track.id, currentMetadata);
-      if (!shouldDownload && logger)
+      if (!shouldDownload)
         logger.debug(`Skip "${track.name}"`);
       return shouldDownload;
     })
@@ -200,7 +199,7 @@ function downloadPlaylist(playlist, { metadata, metadataPath, logger } = {}) {
     // skip downloaded songs
     .filter(track => {
       let shouldDownload = !isTrackDownloaded(track.id, currentMetadata);
-      if (!shouldDownload && logger)
+      if (!shouldDownload)
         debug(logger, `Skip "${track.name}"`);
       return shouldDownload;
     })
@@ -269,6 +268,8 @@ function downloadYoutubeVideo(name, location = './', { logger } = {}) {
   if (!fs.existsSync(location))
     mkdirp.sync(location);
 
+  let writeStream = fs.createWriteStream(fullPath);
+
   return highland(youtube.searchMusicVideo(name))
     .map(video => {
       if (!video) {
@@ -279,8 +280,9 @@ function downloadYoutubeVideo(name, location = './', { logger } = {}) {
       let downloadUrl = `https://www.youtube.com/watch?v=${video.id.videoId}`;
       debug(logger, `Downloading video from url: ${downloadUrl}`);
 
-      return ytdl(downloadUrl, { quality: 18 /* 360p */ })
-        .pipe(fs.createWriteStream(fullPath));
+      return highland(ytdl(downloadUrl, { quality: 18 /* 360p */ }))
+        .pipe(writeStream)
+        .on('finish', () => console.log('Finish write:', name));
     });
 }
 
@@ -324,7 +326,7 @@ function downloadYoutubeAudio(name, location = './', { logger } = {}) {
           let [, typeAndFormat, type, format, codec] = formatTypeRegex.exec(f.type);
           let shouldDownload = type === 'audio' && format === 'mp4';
 
-          if (shouldDownload && logger)
+          if (shouldDownload)
             debug(logger, `File type: ${typeAndFormat} (${codec})`);
 
           return shouldDownload;
