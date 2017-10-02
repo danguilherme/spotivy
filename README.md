@@ -39,6 +39,22 @@ spotivy user 12170981553 -a # id, audio only
 spotivy help user
 ```
 
+### Download playlists
+Downloads any public playlists from a given user.
+
+Accepts all [global options](#global-options).
+
+```bash
+spotivy playlist <username> <playlist_ids...> # username or id and playlist ID, one or more
+spotivy playlist danguilherme 34X8sCTs81AWXD8hhbTZVn
+spotivy playlist danguilherme 3BG5tkH8g77ClLThZiosGD 3Zpkeg6VE5wj5eghBxv0R6 -a # 2 playlists, audio only
+```
+
+**More info:**
+```bash
+spotivy help playlist
+```
+
 ### Download single tracks
 Downloads any track you want.
 

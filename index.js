@@ -128,8 +128,7 @@ function cmd_user(username,
       .then(() => youtube.login(youtubeKey))
       .then(function () {
         return downloadUserPlaylists(username, { format, output, logger })
-          .on('end', resolve)
-          .resume();
+          .done(resolve);
       });
   });
 }
@@ -144,10 +143,9 @@ function cmd_playlist(username, playlists,
       .then(() => {
         highland(playlists)
           .flatMap(playlist => highland(spotify.getPlaylist(username, playlist)))
-          .flatMap(track => highland(downloadTrack(track, { format, path: output, logger })))
-          // .on('end', resolve)
-          // .on('error', err => console.error(chalk.bold.red(leftPad("[Download failed]", INFO_COLUMN_WIDTH)), err.message || err))
-          .resume();
+          .flatMap(playlist => highland(downloadPlaylist(playlist, { format, path: output, logger })))
+          .errors(err => info(logger, chalk.bold.red(leftPad("[Download failed]", INFO_COLUMN_WIDTH)), err.message || err, err.stack))
+          .done(resolve);
       });
   });
 }
@@ -163,9 +161,8 @@ function cmd_track(tracks,
         highland(tracks)
           .flatMap(track => highland(spotify.getTrack(track)))
           .flatMap(track => highland(downloadTrack(track, { format, path: output, logger })))
-          .on('end', resolve)
-          .on('error', err => console.error(chalk.bold.red(leftPad("[Download failed]", INFO_COLUMN_WIDTH)), err.message || err))
-          .resume();
+          .errors(err => info(logger, chalk.bold.red(leftPad("[Download failed]", INFO_COLUMN_WIDTH)), err.message || err, err.stack))
+          .done(resolve);
       });
   });
 }
@@ -211,10 +208,7 @@ function downloadUserPlaylists(username, { format, output, logger } = {}) {
       currentTrack = track;
 
       const downloadPromise = downloadTrack(track, { format, path: currentPath, logger });
-      return highland(downloadPromise)
-        .on('error', err => {
-          console.error(chalk.bold.red("     [Download failed]"), err.message || err);
-        });
+      return highland(downloadPromise);
     })
     .each(() => {
       updateMetadata(currentTrack, { metadata: currentMetadata });
@@ -236,9 +230,7 @@ function downloadPlaylist(playlist, { format, output, logger } = {}) {
     .sequence()
     .map(playlistTrack => playlistTrack.track)
     .flatMap(track => {
-      info(chalk.bold.blue(leftPad("[Downloading track]", INFO_COLUMN_WIDTH)), track.name);
-
-      const downloadPromise = downloadTrack(track, { format, path: currentPath, logger });
+      const downloadPromise = downloadTrack(track, { format, path: output, logger });
       return highland(downloadPromise);
     });
 }
@@ -293,27 +285,30 @@ function downloadYoutubeVideo(name, location = './', { logger } = {}) {
   if (!fs.existsSync(location))
     mkdirp.sync(location);
 
-  return youtube.searchMusicVideo(name, { logger })
-    .then(video => {
+  let videoSearchPromise = youtube.searchMusicVideo(name);
+  let writeStream = fs.createWriteStream(fullPath);
+
+  return highland(videoSearchPromise) // search the video
+    .flatMap(video => highland((push, next) => {
       if (!video) {
         throw new Error("Video not found");
         return;
       }
 
       let downloadUrl = `https://www.youtube.com/watch?v=${video.id.videoId}`;
+      debug(logger, `Downloading video from url: ${downloadUrl}`);
 
-      return downloadUrl
-    })
-    .then(videoUrl => new Promise((resolve, reject) => {
-      debug(logger, `Downloading video from url: ${videoUrl}`);
+      let videoStream = ytdl(downloadUrl, { quality: 18 /* 360p */ });
 
-      let writeStream = fs.createWriteStream(fullPath);
-      ytdl(videoUrl, { quality: 18 /* 360p */ })
+      return highland(videoStream)
         .pipe(writeStream)
-        .on('finish', resolve)
-        .on('error', reject);
+        .on('finish', () => {
+          debug(logger, 'Finish write:', name);
+          push(null, highland.nil);
+        });
     }));
 }
+
 
 /**
  * Downloads the audio from the given video from YouTube.
