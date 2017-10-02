@@ -188,52 +188,6 @@ init();
 
 
 
-
-
-
-
-
-function downloadUserPlaylistsOld(username, { format, quality, output, logger } = {}) {
-  let path = output;
-  let currentMetadata = null;
-  let currentMetadataPath = null;
-  let currentPlaylist = null;
-  let currentPath = null;
-  let currentTrack = null;
-
-  return spotify
-    .getAllUserPlaylists(username, { logger })
-    .sequence()
-    .flatMap(playlist => {
-      currentPlaylist = playlist;
-      currentPath = fsPath.join(path, createFolderName(currentPlaylist.name));
-      currentMetadataPath = fsPath.join(currentPath, METADATA_FILE);
-      currentMetadata = loadMetadata(currentMetadataPath);
-
-      console.log(chalk.bold.blue(leftPad("[Downloading playlist]", INFO_COLUMN_WIDTH)), currentPlaylist.name);
-      return spotify.getAllPlaylistTracks(currentPlaylist.owner.id, currentPlaylist.id, { logger });
-    })
-    .sequence()
-    .map(playlistTrack => playlistTrack.track)
-    // skip downloaded songs
-    .filter(track => {
-      let shouldDownload = !isTrackDownloaded(track.id, currentMetadata);
-      if (!shouldDownload)
-        debug(logger, `Skip "${track.name}"`);
-      return shouldDownload;
-    })
-    .flatMap(track => {
-      currentTrack = track;
-
-      const downloadPromise = downloadTrack(track, { format, quality, path: currentPath, logger });
-      return highland(downloadPromise);
-    })
-    .each(() => {
-      updateMetadata(currentTrack, { metadata: currentMetadata });
-      saveMetadata(currentMetadata, currentMetadataPath);
-    });
-}
-
 function downloadUserPlaylists(username,
   { format, quality, path, createSubFolder = true, logger } = {}) {
 

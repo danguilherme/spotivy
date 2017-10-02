@@ -23,6 +23,10 @@ Download all tracks from your Spotify playlists as videos or MP3.
 spotivy --help
 ```
 
+### Commands
+- [Download user playlists](https://github.com/danguilherme/spotivy#download-playlists)
+- [Download single tracks](https://github.com/danguilherme/spotivy#download-single-tracks)
+
 ### Global Options
 These options are accepted by **any command**.
 
