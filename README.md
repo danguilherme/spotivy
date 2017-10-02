@@ -12,7 +12,7 @@ Download all tracks from your Spotify playlists as videos or MP3.
     1.  Create an application on [Spotify Developers website](https://developer.spotify.com/my-applications/).
         Put the Client ID and Client Secret into `spotify.clientId` and `spotify.clientSecret`, respectively.
     1.  Create an [YouTube API key](https://console.developers.google.com) and put into `youtube.key`.
-    
+
     * **Note:** You can also pass the credentials as command arguments:
     ```bash
     spotivy user danguilherme --spotify-client-id=clientid --spotify-client-secret=clientsecret --youtube-key=ytkey
@@ -65,3 +65,6 @@ spotivy track 0SFJQqnU0k42NYaLb3qqTx 31acMiV67UgKn1ScFChFxo 52K4Nl7eVNqUpUeJeWJl
 
 spotivy help track
 ```
+
+# License
+Spotivy is under [MIT License](LICENSE).
