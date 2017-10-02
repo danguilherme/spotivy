@@ -153,7 +153,7 @@ function cmd_playlist(username, playlists,
       .then(() => {
         highland(playlists)
           .flatMap(playlist => highland(spotify.getPlaylist(username, playlist)))
-          .flatMap(playlist => highland(downloadPlaylist(playlist, { format, quality, path: output, createSubFolder: !flat, logger })))
+          .flatMap(playlist => downloadPlaylist(playlist, { format, quality, path: output, createSubFolder: !flat, logger }))
           .errors(err => handleDownloadError(err, logger))
           .done(resolve);
       });
@@ -210,14 +210,18 @@ function downloadPlaylist(playlist,
   { format = 'video', quality, path = './', createSubFolder = true, logger } = {}) {
   info(logger, chalk.bold.blue(leftPad("[Downloading playlist]", INFO_COLUMN_WIDTH)), playlist.name);
 
+  let targetPath = path;
   if (createSubFolder)
-    path = fsPath.join(path, createFolderName(playlist.name));
+    targetPath = fsPath.join(path, createFolderName(playlist.name));
+  let metadataPath = fsPath.join(targetPath, METADATA_FILE);
+  let metadata = getMetadata(metadataPath);
 
   return spotify
     .getAllPlaylistTracks(playlist.owner.id, playlist.id, { logger })
     .sequence()
     .map(playlistTrack => playlistTrack.track)
-    .flatMap(track => highland(downloadTrack(track, { format, quality, path, logger })));
+    .flatMap(track => downloadTrack(track, { format, quality, path: targetPath, logger, metadata }))
+    .map(() => saveMetadata(metadata, metadataPath));
 }
 
 /**
@@ -228,34 +232,26 @@ function downloadPlaylist(playlist,
  * - format: `video` or `audio`
  * - path: where the track will be saved on disk
  */
-function downloadTrack(track, { format = 'video', quality, path = './', logger } = {}) {
+function downloadTrack(track,
+  { format = 'video', quality, path = './', logger,
+    metadata } = {}) {
+
   let trackName = `${track.artists[0].name} - ${track.name}`;
   info(logger, chalk.bold.blue(leftPad("[Downloading track]", INFO_COLUMN_WIDTH)), trackName);
 
-  let downloadFunction = format === 'video' ? downloadYoutubeVideo : downloadYoutubeAudio;
-  return downloadFunction(trackName, path, { quality, logger });
-}
-
-function isTrackDownloaded(trackId, metadata = null, { metadataPath = './' } = {}) {
-  if (!metadata) {
-    let metadataPath = fsPath.join(metadataPath, METADATA_FILE);
-    metadata = loadMetadata(metadataPath);
+  if (isTrackDownloaded(track.id, metadata)) {
+    info(logger, chalk.bold.magenta(leftPad("[File download]", INFO_COLUMN_WIDTH)), `Media is already downloaded`);
+    return highland((push, next) => push(null, highland.nil));
   }
-  return metadata.ids.indexOf(trackId) !== -1;
+
+  let downloadFunction = format === 'video' ? downloadYoutubeVideo : downloadYoutubeAudio;
+  return downloadFunction(trackName, path, { quality, logger })
+    .map(() => updateMetadata(track, metadata));
 }
 
-function updateMetadata(track, { metadata = null, metadataPath = './' } = {}) {
-  let fileName = `${track.artists[0].name} - ${track.name}`;
-  if (!metadata)
-    metadata = loadMetadata(fsPath.join(metadataPath, METADATA_FILE));
-
-  // update downloaded tracks control
-  metadata.ids.push(track.id);
-  // info for humans to understand the metadata file
-  metadata.names[track.id] = fileName;
-
-  return metadata;
-}
+////
+// DOWNLOAD
+////
 
 /**
  * Downloads the given video from YouTube.
@@ -293,6 +289,7 @@ function downloadYoutubeVideo(name, location = './', { quality = 'highest', logg
         .pipe(writeStream)
         .on('finish', () => {
           debug(logger, 'Finish write:', name);
+          push(null, fullPath);
           push(null, highland.nil);
         });
     }));
@@ -356,9 +353,43 @@ function downloadYoutubeAudio(name, location = './', { logger } = {}) {
         .pipe(writeStream)
         .on('finish', () => {
           debug(logger, 'Finish write:', name);
+          push(null, fullPath);
           push(null, highland.nil);
         });
     }));
+}
+
+////
+// METADATA FILE MANIPULATION
+////
+
+function isTrackDownloaded(trackId, metadata) {
+  metadata = getMetadata(metadata);
+  return metadata.ids.indexOf(trackId) !== -1;
+}
+
+function updateMetadata(track, metadata) {
+  metadata = getMetadata(metadata);
+  let fileName = `${track.artists[0].name} - ${track.name}`;
+
+  // update downloaded tracks control
+  metadata.ids.push(track.id);
+  // info for humans to understand the metadata file
+  metadata.names[track.id] = fileName;
+
+  return metadata;
+}
+
+/**
+ * Get metadata object.
+ * Read from file if the parameter is a path.
+ * 
+ * @param {String|Object} pathOrData if it's a string, will read the metadata file on this exact location. If object, return it
+ */
+function getMetadata(pathOrData) {
+  if (typeof pathOrData === 'string')
+    return metadata = loadMetadata(pathOrData);
+  return pathOrData;
 }
 
 function loadMetadata(location) {
@@ -376,6 +407,10 @@ function saveMetadata(metadata, location) {
     mkdirp.sync(fsPath.dirname(location));
   fs.writeFileSync(location, JSON.stringify(metadata, null, 2));
 }
+
+////
+// HELPERS
+////
 
 /**
  * Transform the given string to a folder-friendly name for windows
