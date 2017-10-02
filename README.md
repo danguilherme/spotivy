@@ -23,22 +23,6 @@ Download all tracks from your Spotify playlists as videos or MP3.
 spotivy --help
 ```
 
-### Download user playlists
-Downloads all public playlists from the given user.
-
-Accepts all [global options](#global-options).
-
-```bash
-spotivy user <username> # username or id
-spotivy user danguilherme
-spotivy user 12170981553 -a # id, audio only
-```
-
-**More info:**
-```bash
-spotivy help user
-```
-
 ### Download playlists
 Downloads any public playlists from a given user.
 
@@ -46,6 +30,7 @@ Accepts all [global options](#global-options).
 
 ```bash
 spotivy playlist <username> <playlist_ids...> # username or id and playlist ID, one or more
+spotivy playlist danguilherme # download all public playlists from the user
 spotivy playlist danguilherme 34X8sCTs81AWXD8hhbTZVn
 spotivy playlist danguilherme 3BG5tkH8g77ClLThZiosGD 3Zpkeg6VE5wj5eghBxv0R6 -a # 2 playlists, audio only
 ```

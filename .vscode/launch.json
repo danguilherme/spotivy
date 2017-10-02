@@ -7,7 +7,6 @@
       "request": "launch",
       "program": "${workspaceRoot}/index.js",
       "stopOnEntry": false,
-      // "args": ["user", "12170981553", "--verbose"],
       "args": ["playlist", "danguilherme", "0E2o1alCwoZnJzWuCgGuVa", "--verbose"],
       // "args": ["track", "0SFJQqnU0k42NYaLb3qqTx", "31acMiV67UgKn1ScFChFxo", "--verbose"],
       "cwd": "${workspaceRoot}",
