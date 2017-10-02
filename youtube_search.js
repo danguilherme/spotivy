@@ -66,7 +66,8 @@ function searchMusicVideo(term, { logger } = {}) {
 function searchMusicAudio(term, { logger } = {}) {
   return searchVideo(`${term} audio`, { logger })
     .then(results => {
-      debug(logger, `Search music audio: selected "${results[0].snippet.title}", by ${results[0].snippet.channelTitle}`);
+      if (results[0])
+        debug(logger, `Search music audio: selected "${results[0].snippet.title}", by ${results[0].snippet.channelTitle}`);
       return results[0];
     })
     .catch(x => console.error(x));

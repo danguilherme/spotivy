@@ -57,6 +57,7 @@ function init() {
           format: config.format,
           quality: qualityMap[config.quality],
           output: config.output,
+          flat: config.flat,
           logger
         });
       } else {
@@ -67,6 +68,7 @@ function init() {
           format: config.format,
           quality: qualityMap[config.quality],
           output: config.output,
+          flat: config.flat,
           logger
         })
       }
@@ -91,6 +93,7 @@ function init() {
         format: config.format,
         quality: qualityMap[config.quality],
         output: config.output,
+        flat: config.flat,
         logger
       })
         .then(() => afterCommand(logger));
@@ -107,6 +110,7 @@ function configureGlobalOptions(caporalCommand) {
     .option('-o, --output <output>', 'Location where to save the downloaded media', /\w*/, defaultOutputPath)
     .option('-f, --format <format>', "The format of the file to download. Either 'video' or 'audio'", ["audio", "video"], 'video')
     .option('-q, --quality <quality>', `The quality of the video to download (desconsidered if format=audio).\nOptions: ${Object.keys(qualityMap).join(', ')}`, Object.keys(qualityMap), 'highest')
+    .option('--flat', 'Flag to indicate if the files must be saved directly in the output folder, without subfolders', caporal.BOOLEAN, false)
     .option('-a, --audio', "Download tracks as audio. Same as --format audio", caporal.BOOLEAN, false)
     .option('--spotify-client-id [client-id]', 'Spotify app client ID (from https://developer.spotify.com/my-applications/)')
     .option('--spotify-client-secret [client-secret]', 'Spotify app client secret (from https://developer.spotify.com/my-applications/)')
@@ -124,14 +128,15 @@ function afterCommand(logger) {
 
 function cmd_user(username,
   { spotifyClientId, spotifyClientSecret, youtubeKey,
-    format, quality, output, logger } = {}) {
+    format, quality, output, flat, logger } = {}) {
 
   return new Promise((resolve, reject) => {
     spotify
       .login(spotifyClientId, spotifyClientSecret, { logger })
       .then(() => youtube.login(youtubeKey))
       .then(function () {
-        return downloadUserPlaylists(username, { format, quality, output, logger })
+        return downloadUserPlaylists(username, { format, quality, path: output, createSubFolder: !flat, logger })
+          .errors(err => handleDownloadError(err, logger))
           .done(resolve);
       });
   });
@@ -139,16 +144,17 @@ function cmd_user(username,
 
 function cmd_playlist(username, playlists,
   { spotifyClientId, spotifyClientSecret, youtubeKey,
-    format, quality, output, logger } = {}) {
+    format, quality, output, flat, logger } = {}) {
 
   return new Promise((resolve, reject) => {
+
     spotify.login(spotifyClientId, spotifyClientSecret, { logger })
       .then(() => youtube.login(youtubeKey))
       .then(() => {
         highland(playlists)
           .flatMap(playlist => highland(spotify.getPlaylist(username, playlist)))
-          .flatMap(playlist => highland(downloadPlaylist(playlist, { format, quality, path: output, logger })))
-          .errors(err => info(logger, chalk.bold.red(leftPad("[Download failed]", INFO_COLUMN_WIDTH)), err.message || err, err.stack))
+          .flatMap(playlist => highland(downloadPlaylist(playlist, { format, quality, path: output, createSubFolder: !flat, logger })))
+          .errors(err => handleDownloadError(err, logger))
           .done(resolve);
       });
   });
@@ -165,21 +171,29 @@ function cmd_track(tracks,
         highland(tracks)
           .flatMap(track => highland(spotify.getTrack(track)))
           .flatMap(track => highland(downloadTrack(track, { format, quality, path: output, logger })))
-          .errors(err => info(logger, chalk.bold.red(leftPad("[Download failed]", INFO_COLUMN_WIDTH)), err.message || err, err.stack))
+          .errors(err => handleDownloadError(err, logger))
           .done(resolve);
       });
   });
 }
 
+function handleDownloadError(err, logger) {
+  info(logger, chalk.bold.red(leftPad("[Download failed]", INFO_COLUMN_WIDTH)), err.message || err);
+  debug(logger, err.stack);
+}
+
 init();
 
 
-// https://open.spotify.com/track/0SFJQqnU0k42NYaLb3qqTx
-// https://open.spotify.com/track/31acMiV67UgKn1ScFChFxo
-// https://open.spotify.com/track/52K4Nl7eVNqUpUeJeWJlwT
-// https://open.spotify.com/track/5tXyNhNcsnn7HbcABntOSf
 
-function downloadUserPlaylists(username, { format, quality, output, logger } = {}) {
+
+
+
+
+
+
+
+function downloadUserPlaylistsOld(username, { format, quality, output, logger } = {}) {
   let path = output;
   let currentMetadata = null;
   let currentMetadataPath = null;
@@ -220,23 +234,36 @@ function downloadUserPlaylists(username, { format, quality, output, logger } = {
     });
 }
 
+function downloadUserPlaylists(username,
+  { format, quality, path, createSubFolder = true, logger } = {}) {
+
+  if (createSubFolder)
+    path = fsPath.join(path, createFolderName(username));
+
+  return spotify
+    .getAllUserPlaylists(username, { logger })
+    .sequence()
+    .flatMap(playlist => downloadPlaylist(playlist, { format, quality, path, createSubFolder, logger }));
+}
+
 /**
  * Download all tracks from the given playlist
  * 
  * @param {SpotifyPlaylist} playlist 
  * @param {*} param1 
  */
-function downloadPlaylist(playlist, { format = 'video', quality, path = './', logger } = {}) {
+function downloadPlaylist(playlist,
+  { format = 'video', quality, path = './', createSubFolder = true, logger } = {}) {
   info(logger, chalk.bold.blue(leftPad("[Downloading playlist]", INFO_COLUMN_WIDTH)), playlist.name);
+
+  if (createSubFolder)
+    path = fsPath.join(path, createFolderName(playlist.name));
 
   return spotify
     .getAllPlaylistTracks(playlist.owner.id, playlist.id, { logger })
     .sequence()
     .map(playlistTrack => playlistTrack.track)
-    .flatMap(track => {
-      const downloadPromise = downloadTrack(track, { format, quality, path, logger });
-      return highland(downloadPromise);
-    });
+    .flatMap(track => highland(downloadTrack(track, { format, quality, path, logger })));
 }
 
 /**
@@ -285,6 +312,11 @@ function updateMetadata(track, { metadata = null, metadataPath = './' } = {}) {
  */
 function downloadYoutubeVideo(name, location = './', { quality = 'highest', logger } = {}) {
   let fullPath = fsPath.join(location, `${createFolderName(name)}.mp4`);
+  if (fs.existsSync(fullPath)) {
+    info(logger, chalk.bold.magenta(leftPad("[File download]", INFO_COLUMN_WIDTH)), `Media is already downloaded`);
+    return highland((push, next) => push(null, highland.nil));
+  }
+
   // setup folders
   if (!fs.existsSync(location))
     mkdirp.sync(location);
@@ -329,9 +361,14 @@ function downloadYoutubeAudio(name, location = './', { logger } = {}) {
    * - Group #3: mp4
    * - Group #4: mp4a.40.2
    */
-  let formatTypeRegex = /((.*)\/(.*)); codecs="(.*)"/;
+  const formatTypeRegex = /((.*)\/(.*)); codecs="(.*)"/;
 
-  let fullPath = fsPath.join(location, `${createFolderName(name)}.mp3`);
+  const fullPath = fsPath.join(location, `${createFolderName(name)}.mp3`);
+  if (fs.existsSync(fullPath)) {
+    info(logger, chalk.bold.magenta(leftPad("[File download]", INFO_COLUMN_WIDTH)), `Media is already downloaded`);
+    return highland((push, next) => push(null, highland.nil));
+  }
+
   // setup folders
   if (!fs.existsSync(location))
     mkdirp.sync(location);
@@ -351,8 +388,8 @@ function downloadYoutubeAudio(name, location = './', { logger } = {}) {
         filter: function mp4AudioFilter(f) {
           if (!f.type) return false;
 
-          let [, typeAndFormat, type, format, codec] = formatTypeRegex.exec(f.type);
-          let shouldDownload = type === 'audio' && format === 'mp4';
+          const [, typeAndFormat, type, format, codec] = formatTypeRegex.exec(f.type);
+          const shouldDownload = type === 'audio' && format === 'mp4';
 
           if (shouldDownload)
             debug(logger, `File type: ${typeAndFormat} (${codec})`);
