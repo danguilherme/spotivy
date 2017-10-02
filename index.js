@@ -55,8 +55,30 @@ function init() {
     // command: download playlist
     .command('playlist')
     .help('Download tracks from the given playlist')
+    .argument('<username>', 'The id of the playlist owner')
     .argument('<playlist...>', 'Playlist IDs (may be more than one)')
-    .action(console.log)
+    .option('-o, --output <output>', 'Location where to save the downloaded media', /\w*/, defaultOutputPath)
+    .option('-f, --format <format>', "The format of the file to download. Either 'audio' or 'video'", ["audio", "video"], 'video')
+    .option('-a, --audio', "Download tracks as audio. Same as --format audio", caporal.BOOLEAN, false)
+    .option('--spotify-client-id [client-id]', 'Spotify app client ID (from https://developer.spotify.com/my-applications/)')
+    .option('--spotify-client-secret [client-secret]', 'Spotify app client secret (from https://developer.spotify.com/my-applications/)')
+    .option('--youtube-key [key]', 'Youtube API key (from https://console.developers.google.com)')
+    .action((args, options, logger) => {
+      beforeCommand(logger);
+      const config = loadConfig(configPath, Object.assign({}, options, args), { logger });
+
+      info(logger, `Saving media to '${config.output}'\n`);
+
+      cmd_playlist(args.username, args.playlist, {
+        spotifyClientId: config.spotifyClientId,
+        spotifyClientSecret: config.spotifyClientSecret,
+        youtubeKey: config.youtubeKey,
+        format: config.format,
+        output: config.output,
+        logger
+      })
+        .then(() => afterCommand(logger));
+    })
 
     // command: download track
     .command('track')
@@ -112,8 +134,22 @@ function cmd_user(username,
   });
 }
 
-function cmd_playlist(playlists) {
+function cmd_playlist(username, playlists,
+  { spotifyClientId, spotifyClientSecret, youtubeKey,
+    format, output, logger } = {}) {
 
+  return new Promise((resolve, reject) => {
+    spotify.login(spotifyClientId, spotifyClientSecret, { logger })
+      .then(() => youtube.login(youtubeKey))
+      .then(() => {
+        highland(playlists)
+          .flatMap(playlist => highland(spotify.getPlaylist(username, playlist)))
+          .flatMap(track => highland(downloadTrack(track, { format, path: output, logger })))
+          // .on('end', resolve)
+          // .on('error', err => console.error(chalk.bold.red(leftPad("[Download failed]", INFO_COLUMN_WIDTH)), err.message || err))
+          .resume();
+      });
+  });
 }
 
 function cmd_track(tracks,
@@ -128,6 +164,7 @@ function cmd_track(tracks,
           .flatMap(track => highland(spotify.getTrack(track)))
           .flatMap(track => highland(downloadTrack(track, { format, path: output, logger })))
           .on('end', resolve)
+          .on('error', err => console.error(chalk.bold.red(leftPad("[Download failed]", INFO_COLUMN_WIDTH)), err.message || err))
           .resume();
       });
   });
@@ -191,31 +228,18 @@ function downloadUserPlaylists(username, { format, output, logger } = {}) {
  * @param {SpotifyPlaylist} playlist 
  * @param {*} param1 
  */
-function downloadPlaylist(playlist, { metadata, metadataPath, logger } = {}) {
+function downloadPlaylist(playlist, { format, output, logger } = {}) {
   info(logger, chalk.bold.blue(leftPad("[Downloading playlist]", INFO_COLUMN_WIDTH)), playlist.name);
 
-  return spotify.getAllPlaylistTracks(playlist.owner.id, playlist.id, { logger })
+  return spotify
+    .getAllPlaylistTracks(playlist.owner.id, playlist.id, { logger })
     .sequence()
     .map(playlistTrack => playlistTrack.track)
-    // skip downloaded songs
-    .filter(track => {
-      let shouldDownload = !isTrackDownloaded(track.id, currentMetadata);
-      if (!shouldDownload)
-        debug(logger, `Skip "${track.name}"`);
-      return shouldDownload;
-    })
     .flatMap(track => {
       info(chalk.bold.blue(leftPad("[Downloading track]", INFO_COLUMN_WIDTH)), track.name);
 
       const downloadPromise = downloadTrack(track, { format, path: currentPath, logger });
-      return highland(downloadPromise)
-        .on('error', err => {
-          console.error(chalk.bold.red(leftPad("[Download failed]", INFO_COLUMN_WIDTH)), err.message || err);
-        });
-    })
-    .each(track => {
-      updateMetadata(track, { metadata: currentMetadata });
-      saveMetadata(currentMetadata, currentMetadataPath);
+      return highland(downloadPromise);
     });
 }
 

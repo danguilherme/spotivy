@@ -34,6 +34,10 @@ function getTrack(trackId, { logger } = {}) {
   return api.getTrack(trackId).then(r => r.body);
 }
 
+function getPlaylist(username, playlistId, { logger } = {}) {
+  return api.getPlaylist(username, playlistId).then(r => r.body);
+}
+
 function getAllUserPlaylists(username, { logger } = {}) {
   debug(logger, `Fetching playlists of ${username}`);
   return createPaginationStream(function getPlaylistTracks() {
@@ -89,6 +93,7 @@ function createPaginationStream(endpointFn, { logger } = {}) {
 module.exports = {
   login,
   getTrack,
+  getPlaylist,
   getAllUserPlaylists,
   getAllPlaylistTracks
 };
