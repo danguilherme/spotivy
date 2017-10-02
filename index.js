@@ -33,21 +33,14 @@ const qualityMap = {
 function init() {
   caporal
     .name('spotivy')
-    .help(pkg.description)
     .version(pkg.version)
+    .help(pkg.description);
 
-    // command: download user playlist(s)
-    .command('playlist')
+  // command: download user playlist(s)
+  var commandPlaylist = caporal.command('playlist', 'Download public playlists from the given user')
     .help('Download public playlists from the given user')
     .argument('<username>', 'The id of the playlist owner')
     .argument('[playlists...]', 'Playlist IDs. If none, all user playlists will be downloaded')
-    .option('-o, --output <output>', 'Location where to save the downloaded media', /\w*/, defaultOutputPath)
-    .option('-f, --format <format>', "The format of the file to download. Either 'audio' or 'video'", ["audio", "video"], 'video')
-    .option('-q, --quality <quality>', `The quality of the video to download (desconsidered if format=audio).\nOptions: ${Object.keys(qualityMap).join(', ')}`, Object.keys(qualityMap), 'highest')
-    .option('-a, --audio', "Download tracks as audio. Same as --format audio", caporal.BOOLEAN, false)
-    .option('--spotify-client-id [client-id]', 'Spotify app client ID (from https://developer.spotify.com/my-applications/)')
-    .option('--spotify-client-secret [client-secret]', 'Spotify app client secret (from https://developer.spotify.com/my-applications/)')
-    .option('--youtube-key [key]', 'Youtube API key (from https://console.developers.google.com)')
     .action((args, options, logger) => {
       beforeCommand(logger);
 
@@ -79,19 +72,12 @@ function init() {
       }
 
       cmdPromise.then(() => afterCommand(logger));
-    })
+    });
 
-    // command: download track
-    .command('track')
-    .help('Download single track')
+  // command: download track
+  let commandTrack = caporal.command('track', 'Download single tracks')
+    .help('Download single tracks')
     .argument('<tracks...>', 'Track IDs (may be more than one)')
-    .option('-o, --output <output>', 'Location where to save the downloaded media', /\w*/, defaultOutputPath)
-    .option('-f, --format <format>', "The format of the file to download. Either 'audio' or 'video'", ["audio", "video"], 'video')
-    .option('-q, --quality <quality>', `The quality of the video to download (desconsidered if format=audio).\nOptions: ${Object.keys(qualityMap).join(', ')}`, Object.keys(qualityMap), 'highest')
-    .option('-a, --audio', "Download tracks as audio. Same as --format audio", caporal.BOOLEAN, false)
-    .option('--spotify-client-id [client-id]', 'Spotify app client ID (from https://developer.spotify.com/my-applications/)')
-    .option('--spotify-client-secret [client-secret]', 'Spotify app client secret (from https://developer.spotify.com/my-applications/)')
-    .option('--youtube-key [key]', 'Youtube API key (from https://console.developers.google.com)')
     .action((args, options, logger) => {
       beforeCommand(logger);
       const config = loadConfig(configPath, Object.assign({}, options, args), { logger });
@@ -109,7 +95,22 @@ function init() {
       })
         .then(() => afterCommand(logger));
     });
+
+  configureGlobalOptions(commandPlaylist);
+  configureGlobalOptions(commandTrack);
+
   caporal.parse(process.argv);
+}
+
+function configureGlobalOptions(caporalCommand) {
+  return caporalCommand
+    .option('-o, --output <output>', 'Location where to save the downloaded media', /\w*/, defaultOutputPath)
+    .option('-f, --format <format>', "The format of the file to download. Either 'video' or 'audio'", ["audio", "video"], 'video')
+    .option('-q, --quality <quality>', `The quality of the video to download (desconsidered if format=audio).\nOptions: ${Object.keys(qualityMap).join(', ')}`, Object.keys(qualityMap), 'highest')
+    .option('-a, --audio', "Download tracks as audio. Same as --format audio", caporal.BOOLEAN, false)
+    .option('--spotify-client-id [client-id]', 'Spotify app client ID (from https://developer.spotify.com/my-applications/)')
+    .option('--spotify-client-secret [client-secret]', 'Spotify app client secret (from https://developer.spotify.com/my-applications/)')
+    .option('--youtube-key [key]', 'Youtube API key (from https://console.developers.google.com)');
 }
 
 function beforeCommand(logger) {

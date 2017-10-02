@@ -29,7 +29,7 @@ These options are accepted by **any command**.
 | Option | Description | Default |
 | ------ | ------ | ------ |
 | `-o`, `--output` | location where to save the downloaded media | `./media` |
-| `-f`, `--format` | the format of the file to download. Either `audio` or `video` | `video` |
+| `-f`, `--format` | the format of the file to download. Either `video` or `audio` | `video` |
 | `-q`, `--quality` | the [quality](https://en.wikipedia.org/w/index.php?title=YouTube&oldid=800910021#Quality_and_formats) in which the video should be downloaded (ignored if `--format=audio`). Options: `144p`, `240p`, `360p`, `720p`, `highest`, `lowest` | `highest` |
 | `-a`, `--audio` | flag to download as audio; equivalent to `--format=audio` | - |
 | `-v`, `--verbose` | show detailed logs | - |
