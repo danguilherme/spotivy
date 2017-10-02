@@ -46,8 +46,11 @@ function searchMusicVideo(term, { logger } = {}) {
       } else {
         debug(
           logger,
-          `Search music video: ${goodResults.length} of the videos are good results:`,
-          goodResults.map((x, idx) => `${idx + 1}. "${x.snippet.title}", by ${x.snippet.channelTitle}`)
+          `Search music video:`,
+          [
+            `${goodResults.length} of the videos are good results:`,
+            ...goodResults.map((x, idx) => `${idx + 1}. "${x.snippet.title}", by ${x.snippet.channelTitle}`)
+          ]
         );
 
         // if found a good result (VEVO, official video, ...)

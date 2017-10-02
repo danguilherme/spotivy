@@ -23,25 +23,33 @@ Download all tracks from your Spotify playlists as videos or MP3.
 spotivy --help
 ```
 
+### Global Options
+These options are accepted by **any command**.
+
+| Option | Description | Default |
+| ------ | ------ | ------ |
+| `-o`, `--output` | location where to save the downloaded media | `./media` |
+| `-f`, `--format` | the format of the file to download. Either `audio` or `video` | `video` |
+| `-q`, `--quality` | the [quality](https://en.wikipedia.org/w/index.php?title=YouTube&oldid=800910021#Quality_and_formats) in which the video should be downloaded (ignored if `--format=audio`). Options: `144p`, `240p`, `360p`, `720p`, `highest`, `lowest` | `highest` |
+| `-a`, `--audio` | flag to download as audio; equivalent to `--format=audio` | - |
+| `-v`, `--verbose` | show detailed logs | - |
+
 ### Download playlists
-Downloads any public playlists from a given user.
+Download any public playlists from a given user.
 
 Accepts all [global options](#global-options).
 
 ```bash
-spotivy playlist <username> <playlist_ids...> # username or id and playlist ID, one or more
+spotivy playlist <username> [playlist_ids...] # user id and playlist id, zero or more
 spotivy playlist danguilherme # download all public playlists from the user
 spotivy playlist danguilherme 34X8sCTs81AWXD8hhbTZVn
 spotivy playlist danguilherme 3BG5tkH8g77ClLThZiosGD 3Zpkeg6VE5wj5eghBxv0R6 -a # 2 playlists, audio only
-```
 
-**More info:**
-```bash
 spotivy help playlist
 ```
 
 ### Download single tracks
-Downloads any track you want.
+Download any track you want by its Spotify ID.
 
 Accepts all [global options](#global-options).
 
@@ -49,15 +57,6 @@ Accepts all [global options](#global-options).
 spotivy track <track...> # tracks list
 spotivy track 5tXyNhNcsnn7HbcABntOSf
 spotivy track 0SFJQqnU0k42NYaLb3qqTx 31acMiV67UgKn1ScFChFxo 52K4Nl7eVNqUpUeJeWJlwT 5tXyNhNcsnn7HbcABntOSf -a # 4 tracks, audio only
-```
 
-**More info:**
-```bash
 spotivy help track
 ```
-
-## Global Options
-- `-o`, `--output`: location where to save the downloaded media *(default: `media`)*
-- `-f`, `--format`: the format of the file to download. Either `audio` or `video` *(default: `video`)*
-- `-a`, `--audio`: flag to download as audio; equivalent to `--format=audio`
-- `-v`, `--verbose`: show detailed logs

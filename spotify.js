@@ -40,15 +40,15 @@ function getPlaylist(username, playlistId, { logger } = {}) {
 
 function getAllUserPlaylists(username, { logger } = {}) {
   debug(logger, `Fetching playlists of ${username}`);
-  return createPaginationStream(function getPlaylistTracks() {
-    return api.getUserPlaylists(username);
+  return createPaginationStream(function getPlaylistTracks(options) {
+    return api.getUserPlaylists(username, options);
   }, { logger });
 }
 
 function getAllPlaylistTracks(username, playlistId, { logger } = {}) {
   debug(logger, `Fetching playlist tracks (${playlistId})`);
-  return createPaginationStream(function getPlaylistTracks() {
-    return api.getPlaylistTracks(username, playlistId);
+  return createPaginationStream(function getPlaylistTracks(options) {
+    return api.getPlaylistTracks(username, playlistId, options);
   }, { logger });
 }
 
@@ -63,10 +63,7 @@ function createPaginationStream(endpointFn, { logger } = {}) {
       debug(logger, `Fetch paginated: "${endpointFn.name}"`);
     debug(logger, `Fetch paginated: loading ${offset}..${offset + limit}`);
 
-    endpointFn({
-      limit: limit,
-      offset: offset
-    })
+    endpointFn({ limit, offset })
       .then(data => {
         offset += limit;
         totalItemsCount = data.body.total;
@@ -82,7 +79,7 @@ function createPaginationStream(endpointFn, { logger } = {}) {
           debug(logger, `Fetch paginated: all finish`);
           push(null, highland.nil);
         } else {
-          debug(logger, `Fetch paginated: continue`);
+          debug(logger, `Fetch paginated: next page`);
           next();
         }
       })
