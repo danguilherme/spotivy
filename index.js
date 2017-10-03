@@ -13,12 +13,13 @@ const pkg = require('./package.json');
 const youtube = require('./youtube_search');
 const spotify = require('./spotify');
 const { INFO_COLUMN_WIDTH } = require('./constants');
-const { info, debug } = require('./log');
+const { info, debug, warn } = require('./log');
 
 const METADATA_FILE = ".downloaded";
 const cwd = process.cwd();
 const defaultOutputPath = fsPath.join(cwd, 'media');
 const configPath = fsPath.join(cwd, 'config.json');
+const throughStream = () => highland((push, next) => push(null, highland.nil));
 
 // https://en.wikipedia.org/w/index.php?title=YouTube&oldid=800910021#Quality_and_formats
 const qualityMap = {
@@ -220,6 +221,7 @@ function downloadPlaylist(playlist,
     .getAllPlaylistTracks(playlist.owner.id, playlist.id, { logger })
     .sequence()
     .map(playlistTrack => playlistTrack.track)
+    .filter(track => !isTrackDownloaded(track.id, metadata))
     .flatMap(track => downloadTrack(track, { format, quality, path: targetPath, logger, metadata }))
     .map(() => saveMetadata(metadata, metadataPath));
 }
@@ -240,8 +242,8 @@ function downloadTrack(track,
   info(logger, chalk.bold.blue(leftPad("[Downloading track]", INFO_COLUMN_WIDTH)), trackName);
 
   if (isTrackDownloaded(track.id, metadata)) {
-    info(logger, chalk.bold.magenta(leftPad("[File download]", INFO_COLUMN_WIDTH)), `Media is already downloaded`);
-    return highland((push, next) => push(null, highland.nil));
+    warn(logger, `Media is already downloaded`);
+    return throughStream();
   }
 
   let downloadFunction = format === 'video' ? downloadYoutubeVideo : downloadYoutubeAudio;
@@ -262,11 +264,6 @@ function downloadTrack(track,
  */
 function downloadYoutubeVideo(name, location = './', { quality = 'highest', logger } = {}) {
   let fullPath = fsPath.join(location, `${createFolderName(name)}.mp4`);
-  if (fs.existsSync(fullPath)) {
-    info(logger, chalk.bold.magenta(leftPad("[File download]", INFO_COLUMN_WIDTH)), `Media is already downloaded`);
-    return highland((push, next) => push(null, highland.nil));
-  }
-
   // setup folders
   if (!fs.existsSync(location))
     mkdirp.sync(location);
@@ -275,8 +272,10 @@ function downloadYoutubeVideo(name, location = './', { quality = 'highest', logg
 
   return highland(videoSearchPromise) // search the video
     .flatMap(video => highland((push, next) => {
-      if (!video)
-        throw new Error("Video not found");
+      if (!video) {
+        push(new Error("Video not found"));
+        return throughStream();
+      }
 
       let downloadUrl = `https://www.youtube.com/watch?v=${video.id.videoId}`;
       debug(logger, `Download from: ${downloadUrl}`);
@@ -315,19 +314,16 @@ function downloadYoutubeAudio(name, location = './', { logger } = {}) {
   const formatTypeRegex = /((.*)\/(.*)); codecs="(.*)"/;
 
   const fullPath = fsPath.join(location, `${createFolderName(name)}.mp3`);
-  if (fs.existsSync(fullPath)) {
-    info(logger, chalk.bold.magenta(leftPad("[File download]", INFO_COLUMN_WIDTH)), `Media is already downloaded`);
-    return highland((push, next) => push(null, highland.nil));
-  }
-
   // setup folders
   if (!fs.existsSync(location))
     mkdirp.sync(location);
 
   return highland(youtube.searchMusicAudio(name, { logger }))
     .flatMap(video => highland((push, next) => {
-      if (!video)
-        throw new Error("Audio not found");
+      if (!video) {
+        push(new Error("Audio not found"));
+        return throughStream();
+      }
 
       let downloadUrl = `https://www.youtube.com/watch?v=${video.id.videoId}`;
       debug(logger, `Download from: ${downloadUrl}`);
@@ -350,6 +346,7 @@ function downloadYoutubeAudio(name, location = './', { logger } = {}) {
       });
 
       return highland(videoStream)
+        .errors(err => push(err))
         .pipe(writeStream)
         .on('finish', () => {
           debug(logger, 'Finish write:', name);

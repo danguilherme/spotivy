@@ -5,6 +5,7 @@ const { INFO_COLUMN_WIDTH } = require('./constants');
 
 let debugPrimaryColor = chalk.reset.cyan;
 let debugSecondaryColor = chalk.reset.cyan.bold;
+let warnPrimaryColor = chalk.reset.yellow;
 
 function log(logger, level, ...args) {
   if (logger)
@@ -12,7 +13,7 @@ function log(logger, level, ...args) {
 }
 
 function info(logger, ...args) {
-  logger.info.apply(logger, args);
+  log(logger, 'info', ...args);
 }
 
 function debug(logger, ...args) {
@@ -22,4 +23,8 @@ function debug(logger, ...args) {
   log(logger, 'debug', debugPrimaryColor(leftPad('[DEBUG]', INFO_COLUMN_WIDTH)), ...args);
 }
 
-module.exports = { info, debug };
+function warn(logger, ...args) {
+  log(logger, 'warn', warnPrimaryColor(leftPad('[Warn]', INFO_COLUMN_WIDTH)), ...args);
+}
+
+module.exports = { info, debug, warn };
