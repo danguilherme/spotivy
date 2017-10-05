@@ -17,12 +17,12 @@ Download all tracks from your Spotify playlists as videos or MP3.
 
     * **Note:** You can also pass the credentials as command arguments:
     ```bash
-    spotivy user danguilherme --spotify-client-id=clientid --spotify-client-secret=clientsecret --youtube-key=ytkey
+    spotivy playlist danguilherme --spotify-client-id=clientid --spotify-client-secret=clientsecret --youtube-key=ytkey
     ```
 
 ## Usage
 ```bash
-spotivy --help
+spotivy help
 ```
 
 ### Commands
