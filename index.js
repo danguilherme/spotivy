@@ -222,8 +222,7 @@ function downloadPlaylist(playlist,
     .sequence()
     .map(playlistTrack => playlistTrack.track)
     .filter(track => !isTrackDownloaded(track.id, metadata))
-    .flatMap(track => downloadTrack(track, { format, quality, path: targetPath, logger, metadata }))
-    .map(() => saveMetadata(metadata, metadataPath));
+    .flatMap(track => downloadTrack(track, { format, quality, path: targetPath, logger, metadata }));
 }
 
 /**
@@ -241,6 +240,11 @@ function downloadTrack(track,
   let trackName = `${track.artists[0].name} - ${track.name}`;
   info(logger, chalk.bold.blue(leftPad("[Downloading track]", INFO_COLUMN_WIDTH)), trackName);
 
+  let metadataPath = fsPath.join(path, METADATA_FILE);
+  if (!metadata) {
+    metadata = getMetadata(metadataPath);
+  }
+
   if (isTrackDownloaded(track.id, metadata)) {
     warn(logger, `Media is already downloaded`);
     return throughStream();
@@ -248,8 +252,9 @@ function downloadTrack(track,
 
   let downloadFunction = format === 'video' ? downloadYoutubeVideo : downloadYoutubeAudio;
   return downloadFunction(trackName, path, { quality, logger })
-    .map(() => updateMetadata(track, metadata));
-}
+    .map(() => updateMetadata(track, metadata))
+    .map(() => saveMetadata(metadata, metadataPath));
+  }
 
 ////
 // DOWNLOAD
