@@ -20,6 +20,18 @@ Download all tracks from your Spotify playlists as videos or MP3.
     spotivy playlist danguilherme --spotify-client-id=clientid --spotify-client-secret=clientsecret --youtube-key=ytkey
     ```
 
+## How it Works
+Spotivy gets the track information from Spotify and then search YouTube for that track in the format of `${artist_name} - ${track_name}`.
+
+To decide which video to download from the returned list, it applies a [very simple test](https://github.com/danguilherme/spotivy/blob/v0.4.2/youtube_search.js#L76-L80) for each item:
+
+- video was published by any `VEVO` affiliated channel?
+- video channel contains `official` in its name?
+- video contains `official` in its title?
+
+If any of these assertions is true for the video being tested, this is the media that will be downloaded.
+It's not precise, but it does the job.
+
 ## Usage
 ```bash
 spotivy help
