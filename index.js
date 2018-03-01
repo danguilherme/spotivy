@@ -15,11 +15,15 @@ const spotify = require('./spotify');
 const { INFO_COLUMN_WIDTH } = require('./constants');
 const { info, debug, warn } = require('./log');
 
+// commands
+const { init: cmd_init } = require('./commands');
+
 const METADATA_FILE = ".downloaded";
 const cwd = process.cwd();
 const defaultOutputPath = fsPath.join(cwd, 'media');
 const configPath = fsPath.join(cwd, 'config.json');
 const throughStream = () => highland((push, next) => push(null, highland.nil));
+
 
 // https://en.wikipedia.org/w/index.php?title=YouTube&oldid=800910021#Quality_and_formats
 const qualityMap = {
@@ -36,6 +40,17 @@ function init() {
     .name('spotivy')
     .version(pkg.version)
     .help(pkg.description);
+
+  // command: download user playlist(s)
+  var commandInit = caporal.command('init', 'Configure the tool with the service keys')
+    .help('Configure the tool with the service keys')
+    .action((args, options, logger) => {
+      beforeCommand(logger);
+
+      info(logger, `\n`);
+      cmd_init(configPath, { logger })
+        .then(() => afterCommand(logger));
+    });
 
   // command: download user playlist(s)
   var commandPlaylist = caporal.command('playlist', 'Download public playlists from the given user')
@@ -254,7 +269,7 @@ function downloadTrack(track,
   return downloadFunction(trackName, path, { quality, logger })
     .map(() => updateMetadata(track, metadata))
     .map(() => saveMetadata(metadata, metadataPath));
-  }
+}
 
 ////
 // DOWNLOAD
