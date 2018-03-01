@@ -8,7 +8,7 @@ Download all tracks from your Spotify playlists as videos or MP3.
 ## How it Works
 Spotivy gets the track information from Spotify and then search YouTube in the format of `${artist_name} - ${track_name}`.
 
-To decide which video to download from the returned list, it applies a [very simple test](https://github.com/danguilherme/spotivy/blob/v0.4.2/youtube_search.js#L76-L80) for each item:
+To decide which video to download from the returned list, it applies a [very simple test](https://github.com/danguilherme/spotivy/blob/v0.4.3/youtube_search.js#L76-L80) for each item:
 
 - video was published by any `VEVO` affiliated channel?
 - video channel contains `official` in its name?
