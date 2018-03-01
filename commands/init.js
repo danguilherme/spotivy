@@ -20,7 +20,7 @@ and ${chalk.bold.red('YouTube')} APIs.
   ${chalk.bgWhite.black('  KEYS  ')}
 
   - ${chalk.bold.red('YouTube:')} Generate an ${chalk.bold('API key')} on Google Developer Console:
-             ${chalk.cyan.bold('https://console.developers.google.com/apis/library/youtube.googleapis.com/?id=125bab65-cfb6-4f25-9826-4dcc309bc508')}
+             ${chalk.cyan.bold('https://console.developers.google.com/apis/library/youtube.googleapis.com/?id=125bab65-cfb6-4f25-9826-4dcc309bc508')}.
   - ${chalk.green('Spotify:')} Create a new application in Spotify developers portal:
              ${chalk.cyan.bold('https://beta.developer.spotify.com/dashboard/applications')}.
              They will provide both ${chalk.bold('Client ID')} and ${chalk.bold('Client Secret')}. Keep them.
