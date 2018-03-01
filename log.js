@@ -1,11 +1,14 @@
 const chalk = require('chalk');
 const leftPad = require('left-pad');
+const readline = require('readline');
 
 const { INFO_COLUMN_WIDTH } = require('./constants');
 
-let debugPrimaryColor = chalk.reset.cyan;
-let debugSecondaryColor = chalk.reset.cyan.bold;
-let warnPrimaryColor = chalk.reset.yellow;
+const debugPrimaryColor = chalk.reset.cyan;
+const debugSecondaryColor = chalk.reset.cyan.bold;
+const warnPrimaryColor = chalk.reset.yellow;
+const promptPrimaryColor = chalk.reset.magenta;
+const promptSecondaryColor = chalk.reset.magenta.bold;
 
 function log(logger, level, ...args) {
   if (logger)
@@ -24,7 +27,22 @@ function debug(logger, ...args) {
 }
 
 function warn(logger, ...args) {
-  log(logger, 'warn', warnPrimaryColor(leftPad('[Warn]', INFO_COLUMN_WIDTH)), ...args);
+  log(logger, 'warn', warnPrimaryColor(leftPad('[WARN]', INFO_COLUMN_WIDTH)), ...args);
 }
 
-module.exports = { info, debug, warn };
+function prompt(text) {
+  const inputInterface = readline.createInterface({
+    input: process.stdin,
+    output: process.stdout
+  });
+
+  return new Promise((resolve, reject) => {
+    const question = `${promptPrimaryColor(leftPad("[PROMPT]", INFO_COLUMN_WIDTH))} ${promptSecondaryColor(text)}`;
+    inputInterface.question(question, (answer) => {
+      inputInterface.close();
+      resolve(answer);
+    });
+  });
+}
+
+module.exports = { info, debug, warn, prompt };

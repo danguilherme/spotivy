@@ -47,7 +47,6 @@ function init() {
     .action((args, options, logger) => {
       beforeCommand(logger);
 
-      info(logger, `\n`);
       cmd_init(configPath, { logger })
         .then(() => afterCommand(logger));
     });
