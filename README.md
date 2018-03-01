@@ -23,12 +23,15 @@ It's not precise, but it does the job 90% of the time. [Any suggestion is welcom
     ```bash
     npm install -g spotivy
     ```
-1.  Copy [`config.example.json`](https://github.com/danguilherme/spotivy/blob/v0.4.0/config.example.json) in the root directory as `config.json`.
-    1.  Create an application on [Spotify Developers website](https://developer.spotify.com/my-applications/).
-        Put the Client ID and Client Secret into `spotify.clientId` and `spotify.clientSecret`, respectively.
-    1.  Create an [YouTube API key](https://console.developers.google.com) and put into `youtube.key`.
+1.  Follow the instructions in the `init` command:
+    ```bash
+    spotivy init
+    ```
+    Basically, you'll need to create the keys to use Spotify and YouTube APIs, and configure the tool with them:
+    1.  Create an [YouTube API key](https://console.developers.google.com) and put in the specified prompt.
+    1.  Create an application on [Spotify Developers website](https://developer.spotify.com/my-applications/), get the **Client ID** and **Client Secret** values, and do the same when requested by the tool.
 
-    * **Note:** You can also pass the credentials as command arguments:
+    * **Note:** You can also pass the credentials in each command call:
     ```bash
     spotivy playlist danguilherme --spotify-client-id=clientid --spotify-client-secret=clientsecret --youtube-key=ytkey
     ```
@@ -39,6 +42,7 @@ spotivy help
 ```
 
 ### Commands
+- [Tool configuration](https://github.com/danguilherme/spotivy#init)
 - [Download user playlists](https://github.com/danguilherme/spotivy#download-playlists)
 - [Download single tracks](https://github.com/danguilherme/spotivy#download-single-tracks)
 
@@ -53,6 +57,15 @@ These options are accepted by **any command**.
 | `--flat` | indicates if the files must be saved in one single folder (no subfolders) | - |
 | `-a`, `--audio` | flag to download as audio; equivalent to `--format=audio` | - |
 | `-v`, `--verbose` | show detailed logs | - |
+
+### Init
+Configure the tool with the keys from Spotify and YouTube.
+
+```bash
+spotivy init
+
+spotivy help init
+```
 
 ### Download playlists
 Download any public playlists from a given user.

@@ -42,8 +42,8 @@ function init() {
     .help(pkg.description);
 
   // command: download user playlist(s)
-  var commandInit = caporal.command('init', 'Configure the tool with the service keys')
-    .help('Configure the tool with the service keys')
+  var commandInit = caporal.command('init', 'Tool introduction and configuration')
+    .help('Configure the tool with the keys from Spotify and YouTube. Creates the config file in the current folder.')
     .action((args, options, logger) => {
       beforeCommand(logger);
 
