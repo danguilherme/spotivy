@@ -42,9 +42,9 @@ spotivy help
 ```
 
 ### Commands
-- [Tool configuration](https://github.com/danguilherme/spotivy#init)
-- [Download user playlists](https://github.com/danguilherme/spotivy#download-playlists)
-- [Download single tracks](https://github.com/danguilherme/spotivy#download-single-tracks)
+- [Tool configuration](#init)
+- [Download user playlists](#download-playlists)
+- [Download single tracks](#download-single-tracks)
 
 ### Global Options
 These options are accepted by **any command**.
