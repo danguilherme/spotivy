@@ -12,7 +12,8 @@
     "download"
   ],
   "scripts": {
-    "start": "node index.js",
+    "prestart": "npm install",
+    "start": "node index.js init",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "main": "index.js",
