@@ -12,16 +12,17 @@ function login(clientId, clientSecret, { logger } = {}) {
       return;
     }
 
+    let tempApi = new SpotifyWebApi({ clientId, clientSecret });
+
     debug(logger, `Spotify login`);
 
-    api = new SpotifyWebApi({ clientId, clientSecret });
-
     // Retrieve an access token.
-    api.clientCredentialsGrant()
+    tempApi.clientCredentialsGrant()
       .then(function (data) {
         // Save the access token so that it's used in future calls
-        api.setAccessToken(data.body['access_token']);
+        tempApi.setAccessToken(data.body['access_token']);
 
+        api = tempApi;
         resolve(api);
       }, function (err) {
         console.error('Something went wrong when retrieving an access token', err);
