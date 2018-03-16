@@ -3,7 +3,7 @@ import config from '../config.json';
 import spotify from '../api/spotify';
 import caporal from "caporal";
 import { isStream } from "highland";
-import { filter, take, last, first } from "rxjs/operators";
+import { first, map } from "rxjs/operators";
 
 const logger = caporal.logger();
 
@@ -50,19 +50,29 @@ test('should find playlist', async t => {
   t.is(playlist.tracks.total, 11, "tracks count matches");
 });
 
-test.skip('Should find all playlists from a user', async t => {
+test.only('should find all playlists from a user', async t => {
   const username = 'danguilherme';
   let playlist;
 
-  await t.notThrows(async () => await spotify.login(config.spotify.clientId, config.spotify.clientSecret, { logger }), "Login performs sucessfully");
+  // await t.notThrows(async () => await spotify.login(config.spotify.clientId, config.spotify.clientSecret, { logger }), "Login performs sucessfully");
 
-  await t.notThrows(async () => {
-    playlist = await spotify.getAllUserPlaylists(username, { logger });
-  }, "Downloads the playlist");
+  // await t.notThrows(async () => {
+  //   playlist = await spotify.getAllUserPlaylists(username, { perPage: 5, logger }).toPromise();
+  // }, "Downloads the playlist");
 
-  console.log(playlist);
+  // console.log(playlist);
 
-  t.true(isStream(playlist));
+
+  await login();
+  t.plan(2)
+  t.true(true);
+  return spotify.getAllUserPlaylists(username, { perPage: 5, logger })
+    .pipe(map(console.log))
+    .subscribe(x => {
+      t.true(true);
+    });
+
+  // t.true(isStream(playlist));
   // t.is(playlist.owner.id, username, "owner.id matches");
   // t.is(playlist.id, playlistId, "id matches");
   // t.is(playlist.name, 'The Greatest Showman (Original Motion Picture Soundtrack)', "name matches");
@@ -73,6 +83,6 @@ test.skip('Should find all playlists from a user', async t => {
 // helpers
 async function login() {
   return await spotify.login(config.spotify.clientId, config.spotify.clientSecret, { logger })
-  .pipe(first())
-  .toPromise();
+    .pipe(first())
+    .toPromise();
 }
