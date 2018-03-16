@@ -31,19 +31,20 @@ test('should find single track', async t => {
   t.is(track.artists[0].type, 'artist', "artist[0].type matches");
 });
 
-test.skip('Should find playlist', async t => {
+test('should find playlist', async t => {
   const username = 'danguilherme';
   const playlistId = '1IWxwXxIPGHDRmKbMCtqFf';
   let playlist;
 
-  await t.notThrows(async () => await spotify.login(config.spotify.clientId, config.spotify.clientSecret, { logger }), "Login performs sucessfully");
+  await login();
 
   await t.notThrows(async () => {
-    playlist = await spotify.getPlaylist(username, playlistId, { logger });
+    playlist = await spotify.getPlaylist(username, playlistId, { logger }).toPromise();
   }, "Downloads the playlist");
 
-  t.is(playlist.owner.id, username, "owner.id matches");
+  t.truthy(playlist, 'playlist exists');
   t.is(playlist.id, playlistId, "id matches");
+  t.is(playlist.owner.id, username, "owner.id matches");
   t.is(playlist.name, 'The Greatest Showman (Original Motion Picture Soundtrack)', "name matches");
   t.is(playlist.type, 'playlist', "name matches");
   t.is(playlist.tracks.total, 11, "tracks count matches");

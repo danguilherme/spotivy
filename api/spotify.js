@@ -48,4 +48,18 @@ function getTrack(trackId, { logger } = {}) {
   return track;
 }
 
-module.exports = { login, getTrack };
+function getPlaylist(username, playlistId, { logger } = {}) {
+  const recipe = new Observable(observer => {
+    credentials.subscribe(api => {
+      api.getPlaylist(username, playlistId).then(r => {
+        observer.next(r.body);
+        observer.complete();
+      }, e => observer.error(e));
+    });
+
+    return { unsubscribe() { } }
+  });
+  return recipe;
+}
+
+module.exports = { login, getTrack, getPlaylist };
