@@ -1,6 +1,7 @@
 const { BehaviorSubject } = require('rxjs/BehaviorSubject');
 const { Observable } = require('rxjs/Observable');
-const { filter } = require('rxjs/operators');
+require('rxjs/add/observable/fromPromise');
+const { filter, map, flatMap, catchError, first } = require('rxjs/operators');
 
 const SpotifyWebApi = require('spotify-web-api-node');
 const highland = require('highland');
@@ -35,31 +36,19 @@ function login(clientId, clientSecret, { logger } = {}) {
 }
 
 function getTrack(trackId, { logger } = {}) {
-  const track = new Observable(observer => {
-    credentials.subscribe(api => {
-      api.getTrack(trackId).then(r => {
-        observer.next(r.body);
-        observer.complete();
-      }, e => observer.error(e));
-    });
-
-    return { unsubscribe() { } }
-  });
-  return track;
+  return credentials
+    .pipe(flatMap(api => Observable.fromPromise(api.getTrack(trackId))))
+    .pipe(map(response => response.body))
+    .pipe(catchError(e => Observable.just(new Error(e))))
+    .pipe(first());
 }
 
 function getPlaylist(username, playlistId, { logger } = {}) {
-  const recipe = new Observable(observer => {
-    credentials.subscribe(api => {
-      api.getPlaylist(username, playlistId).then(r => {
-        observer.next(r.body);
-        observer.complete();
-      }, e => observer.error(e));
-    });
-
-    return { unsubscribe() { } }
-  });
-  return recipe;
+  return credentials
+    .pipe(flatMap(api => Observable.fromPromise(api.getPlaylist(username, playlistId))))
+    .pipe(map(response => response.body))
+    .pipe(catchError(e => Observable.just(new Error(e))))
+    .pipe(first());
 }
 
 module.exports = { login, getTrack, getPlaylist };
