@@ -55,9 +55,9 @@ function searchMusicVideo(term, { logger } = {}) {
 
         // if found a good result (VEVO, official video, ...)
         foundVideo = goodResults[0];
+        debug(logger, `Search music video: selected "${foundVideo.snippet.title}", by ${foundVideo.snippet.channelTitle}`);
       }
 
-      debug(logger, `Search music video: selected "${foundVideo.snippet.title}", by ${foundVideo.snippet.channelTitle}`);
       return foundVideo;
     })
     .catch(x => console.error(x));
