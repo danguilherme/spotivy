@@ -24,7 +24,6 @@ const defaultOutputPath = fsPath.join(cwd, 'media');
 const configPath = fsPath.join(cwd, 'config.json');
 const throughStream = () => highland((push, next) => push(null, highland.nil));
 
-
 // https://en.wikipedia.org/w/index.php?title=YouTube&oldid=800910021#Quality_and_formats
 const qualityMap = {
   '144p': 17,
@@ -292,7 +291,8 @@ function downloadYoutubeVideo(name, location = './', { quality = 'highest', logg
   return highland(videoSearchPromise) // search the video
     .flatMap(video => highland((push, next) => {
       if (!video) {
-        push(new Error("Video not found"));
+        warn(logger, `Video not found!`);
+        push(null, highland.nil);
         return throughStream();
       }
 
@@ -340,7 +340,8 @@ function downloadYoutubeAudio(name, location = './', { logger } = {}) {
   return highland(youtube.searchMusicAudio(name, { logger }))
     .flatMap(video => highland((push, next) => {
       if (!video) {
-        push(new Error("Audio not found"));
+        warn(logger, `Audio not found!`);
+        push(null, highland.nil);
         return throughStream();
       }
 
