@@ -1,7 +1,7 @@
 # Spotivy
 > Spotify music videos downloader
 
-![Application preview](screenshot.png)
+![Application preview](docs/screenshot.png)
 
 Download all tracks from your Spotify playlists as videos or MP3.
 

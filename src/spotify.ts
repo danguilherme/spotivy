@@ -1,11 +1,19 @@
-const SpotifyWebApi = require('spotify-web-api-node');
-const highland = require('highland');
+import SpotifyWebApi from 'spotify-web-api-node';
+import highland from 'highland';
 
-const { debug } = require('./log');
+import { debug } from './log';
 
-let api = null;
+export {
+  login,
+  getTrack,
+  getPlaylist,
+  getAllUserPlaylists,
+  getAllPlaylistTracks
+};
 
-function login(clientId, clientSecret, { logger } = {}) {
+let api = undefined;
+
+function login(clientId, clientSecret, { logger } = { logger: undefined }) {
   return new Promise(function (resolve, reject) {
     if (!!api) {
       resolve(api);
@@ -27,34 +35,34 @@ function login(clientId, clientSecret, { logger } = {}) {
         console.error('Something went wrong when retrieving an access token', err);
         reject(err);
       });
-  })
+  });
 }
 
-function getTrack(trackId, { logger } = {}) {
+function getTrack(trackId, { logger } = { logger: undefined }) {
   return api.getTrack(trackId).then(r => r.body);
 }
 
-function getPlaylist(username, playlistId, { logger } = {}) {
+function getPlaylist(username, playlistId, { logger } = { logger: undefined }) {
   return api.getPlaylist(username, playlistId).then(r => r.body);
 }
 
-function getAllUserPlaylists(username, { logger } = {}) {
+function getAllUserPlaylists(username, { logger } = { logger: undefined }): any {
   debug(logger, `Fetching playlists of ${username}`);
   return createPaginationStream(function getPlaylistTracks(options) {
     return api.getUserPlaylists(username, options);
   }, { logger });
 }
 
-function getAllPlaylistTracks(username, playlistId, { logger } = {}) {
+function getAllPlaylistTracks(username, playlistId, { logger } = { logger: undefined }): any {
   debug(logger, `Fetching playlist tracks (${playlistId})`);
   return createPaginationStream(function getPlaylistTracks(options) {
     return api.getPlaylistTracks(username, playlistId, options);
   }, { logger });
 }
 
-function createPaginationStream(endpointFn, { logger } = {}) {
+function createPaginationStream(endpointFn, { logger } = { logger: undefined }) {
   let offset = 0;
-  let limit = 20;
+  const limit = 20;
   let totalItemsCount = undefined;
   let loadedItemsCount = 0;
 
@@ -86,11 +94,3 @@ function createPaginationStream(endpointFn, { logger } = {}) {
       .catch(err => push(err));
   });
 }
-
-module.exports = {
-  login,
-  getTrack,
-  getPlaylist,
-  getAllUserPlaylists,
-  getAllPlaylistTracks
-};

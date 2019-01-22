@@ -1,6 +1,13 @@
-const Youtube = require('youtube-api');
+import Youtube from 'youtube-api';
 
-const { debug } = require('./log');
+import { debug } from './log';
+
+export {
+  login,
+  searchVideo,
+  searchMusicVideo,
+  searchMusicAudio
+};
 
 function login(key) {
   return new Promise((resolve, reject) => {
@@ -12,7 +19,7 @@ function login(key) {
   });
 }
 
-function searchVideo(term, { logger } = {}) {
+function searchVideo(term, { logger }: any = {}): Promise<any> {
   return new Promise(function (resolve, reject) {
     debug(logger, `Search video: search "${term}"`);
 
@@ -33,11 +40,11 @@ function searchVideo(term, { logger } = {}) {
   });
 }
 
-function searchMusicVideo(term, { logger } = {}) {
+function searchMusicVideo(term, { logger }: any = {}) {
   return searchVideo(term, { logger })
     .then(results => {
       let foundVideo = results[0];
-      let goodResults = results
+      const goodResults = results
         .slice(0, 5) // in the first 5 results...
         .filter(isGoodMusicVideoContent);
 
@@ -63,7 +70,7 @@ function searchMusicVideo(term, { logger } = {}) {
     .catch(x => console.error(x));
 }
 
-function searchMusicAudio(term, { logger } = {}) {
+function searchMusicAudio(term, { logger }: any = {}) {
   return searchVideo(`${term} audio`, { logger })
     .then(results => {
       if (results[0])
@@ -76,16 +83,9 @@ function searchMusicAudio(term, { logger } = {}) {
 function isGoodMusicVideoContent(videoSearchResultItem) {
   return contains(videoSearchResultItem.snippet.channelTitle, 'VEVO') ||
     contains(videoSearchResultItem.snippet.channelTitle.toLowerCase(), 'official') ||
-    contains(videoSearchResultItem.snippet.title.toLowerCase(), 'official')
+    contains(videoSearchResultItem.snippet.title.toLowerCase(), 'official');
 }
 
 function contains(string, content) {
   return !!(~(string || "").indexOf(content));
 }
-
-module.exports = {
-  login,
-  searchVideo,
-  searchMusicVideo,
-  searchMusicAudio
-};

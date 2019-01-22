@@ -1,8 +1,10 @@
-const chalk = require('chalk');
-const leftPad = require('left-pad');
-const readline = require('readline');
+import chalk from 'chalk';
+import leftPad from 'left-pad';
+import readline from 'readline';
 
-const { INFO_COLUMN_WIDTH } = require('./constants');
+import { INFO_COLUMN_WIDTH } from './constants';
+
+export { info, debug, warn, prompt };
 
 const debugPrimaryColor = chalk.reset.cyan;
 const debugSecondaryColor = chalk.reset.cyan.bold;
@@ -20,7 +22,7 @@ function info(logger, ...args) {
 }
 
 function debug(logger, ...args) {
-  let colorizeSecondaryText = msg => Array.isArray(msg) ? msg.map(colorizeSecondaryText) : debugSecondaryColor(msg);
+  const colorizeSecondaryText = msg => Array.isArray(msg) ? msg.map(colorizeSecondaryText) : debugSecondaryColor(msg);
   args = args.map(colorizeSecondaryText);
 
   log(logger, 'debug', debugPrimaryColor(leftPad('[DEBUG]', INFO_COLUMN_WIDTH)), ...args);
@@ -44,5 +46,3 @@ function prompt(text) {
     });
   });
 }
-
-module.exports = { info, debug, warn, prompt };

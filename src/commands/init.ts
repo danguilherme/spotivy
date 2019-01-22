@@ -1,12 +1,14 @@
-var fs = require('fs');
-const chalk = require('chalk');
+import fs from 'fs';
+import chalk from 'chalk';
 
-const { INFO_COLUMN_WIDTH } = require('../constants');
-const { info, debug, prompt } = require('../log');
+import { INFO_COLUMN_WIDTH } from '../constants';
+import { info, debug, prompt } from '../log';
+
+export { cmd_init };
 
 const promptChalk = chalk.green;
 
-function cmd_init(configFilePath, { logger } = {}) {
+function cmd_init(configFilePath, { logger }: any = {}) {
   info(logger, `
   ${chalk.bgWhite.black('  INTRODUCTION  ')}
 
@@ -26,7 +28,7 @@ and ${chalk.bold.red('YouTube')} APIs.
              They will provide both ${chalk.bold('Client ID')} and ${chalk.bold('Client Secret')}. Keep them.
 
   For more detailed information, type ${chalk.bold.gray('spotivy --help')} or head to https://danguilherme.github.io/blog/spotivy/ (pt-br).
-  
+
   After retrieving the keys, paste them in their respective prompts:
 `);
 
@@ -46,7 +48,7 @@ and ${chalk.bold.red('YouTube')} APIs.
     .then(() => readSpotifyKeys())
     .then(sptfKeys => config.spotify = sptfKeys)
     .then(() => {
-      debug(logger, `Config generated:\n${JSON.stringify(config, null, 2)}`);
+      debug(logger, `Config generated:\n${JSON.stringify(config, undefined, 2)}`);
 
       info(logger, `
   Config file successfully created at ${chalk.bold(configFilePath)}.
@@ -97,14 +99,12 @@ function readSpotifyClientSecret() {
 
 function saveConfig(path, config) {
   return new Promise((resolve, reject) => {
-    fs.writeFile(path, JSON.stringify(config, null, 2), function (err) {
+    fs.writeFile(path, JSON.stringify(config, undefined, 2), function (err) {
       if (err) {
         return reject(err);
       }
 
       resolve(config);
     });
-  })
+  });
 }
-
-module.exports = cmd_init;
