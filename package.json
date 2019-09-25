@@ -13,9 +13,9 @@
   ],
   "scripts": {
     "start": "node index.js init",
-    "test": "ava tests/*.js --verbose",
-    "test:watch": "ava tests/*.js --verbose --watch",
-    "ava": "ava --verbose"
+    "test": "ava tests/*.js",
+    "test:watch": "ava tests/*.js --watch",
+    "ava": "ava"
   },
   "main": "index.js",
   "bin": {
