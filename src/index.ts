@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 
-import caporal from 'caporal';
+import * as caporal from 'caporal';
 import leftPad from 'left-pad';
 import fs from 'fs';
 import fsPath from 'path';
