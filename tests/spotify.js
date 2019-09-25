@@ -7,16 +7,16 @@ import { isStream } from "highland";
 const logger = caporal.logger();
 
 test('Should login', async t => {
-  await t.notThrows(async () => await spotify.login(config.spotify.clientId, config.spotify.clientSecret, { logger }), "Login performs sucessfully");
+  await t.notThrowsAsync(async () => await spotify.login(config.spotify.clientId, config.spotify.clientSecret, { logger }), "Login performs sucessfully");
 });
 
 test('Should find single track', async t => {
   const trackId = '6yECpoXqqn0cJYl5zC9Gwy';
   let track;
 
-  await t.notThrows(async () => await spotify.login(config.spotify.clientId, config.spotify.clientSecret, { logger }), "Login performs sucessfully");
+  await t.notThrowsAsync(async () => await spotify.login(config.spotify.clientId, config.spotify.clientSecret, { logger }), "Login performs sucessfully");
 
-  await t.notThrows(async () => {
+  await t.notThrowsAsync(async () => {
     track = await spotify.getTrack(trackId, { logger });
   }, "Downloads the track");
 
@@ -33,9 +33,9 @@ test('Should find playlist', async t => {
   const playlistId = '1IWxwXxIPGHDRmKbMCtqFf';
   let playlist;
 
-  await t.notThrows(async () => await spotify.login(config.spotify.clientId, config.spotify.clientSecret, { logger }), "Login performs sucessfully");
+  await t.notThrowsAsync(async () => await spotify.login(config.spotify.clientId, config.spotify.clientSecret, { logger }), "Login performs sucessfully");
 
-  await t.notThrows(async () => {
+  await t.notThrowsAsync(async () => {
     playlist = await spotify.getPlaylist(username, playlistId, { logger });
   }, "Downloads the playlist");
 
@@ -50,13 +50,11 @@ test('Should find all playlists from a user', async t => {
   const username = 'danguilherme';
   let playlist;
 
-  await t.notThrows(async () => await spotify.login(config.spotify.clientId, config.spotify.clientSecret, { logger }), "Login performs sucessfully");
+  await t.notThrowsAsync(async () => await spotify.login(config.spotify.clientId, config.spotify.clientSecret, { logger }), "Login performs sucessfully");
 
-  await t.notThrows(async () => {
+  await t.notThrowsAsync(async () => {
     playlist = await spotify.getAllUserPlaylists(username, { logger });
   }, "Downloads the playlist");
-
-  console.log(playlist);
 
   t.true(isStream(playlist));
   // t.is(playlist.owner.id, username, "owner.id matches");
