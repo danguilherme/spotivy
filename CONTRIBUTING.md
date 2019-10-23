@@ -3,7 +3,7 @@
 ### All conversations and interactions should be respectful and harassment free
 
 ## Issues
-If something doesn't work or you cannot figure out how to make it work, open an ``Issue``.
+If something doesn't work or you cannot figure out how to make it work, [open an issue](https://github.com/danguilherme/spotivy/issues/new).
 
  See if the issue already exists, if it does either try to get help from the comments in its discussions or comment your specific needs. If it doesn't exist then open a new issue.
 
@@ -18,13 +18,13 @@ Some good things to structure your issue
 ## Contributing to Codebase
 If you want to develop/solve issues for spotivy follow these steps if you are new/beginner to our codebase
 
-1. `Fork` the repo on your personal github account
-2. `Clone` the repo in your local machine 
-3. Code and hack away for any issues or new features
-4. write descriptive `commit` messages 
-5. make sure to test your code before you send a PR
-6. `Push` to your remote branch
-7. Finally create a `pull request` to  ```develop``` branch
+1. Fork the repo on your personal GitHub account.
+2. Clone the repo in your local machine.
+3. Code and hack away for any issues or new features.
+4. Write descriptive commit messages.
+5. Make sure to test your code before you send a PR.
+6. Push to your remote branch.
+7. Finally create a Pull Request to `develop` branch.
 
 ***
 ### Note: the base branch for PRs is develop
