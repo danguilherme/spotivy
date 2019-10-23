@@ -26,4 +26,3 @@
 - Spotivy version:
 - Node.js version:
 - Operating System:
-- Additional tools:
