@@ -34,8 +34,8 @@ function getTrack(trackId, { logger } = {}) {
   return api.getTrack(trackId).then(r => r.body);
 }
 
-function getPlaylist(username, playlistId, { logger } = {}) {
-  return api.getPlaylist(username, playlistId).then(r => r.body);
+function getPlaylist(playlistId, { logger } = {}) {
+  return api.getPlaylist(playlistId).then(r => r.body);
 }
 
 function getAllUserPlaylists(username, { logger } = {}) {
@@ -45,10 +45,10 @@ function getAllUserPlaylists(username, { logger } = {}) {
   }, { logger });
 }
 
-function getAllPlaylistTracks(username, playlistId, { logger } = {}) {
+function getAllPlaylistTracks(playlistId, { logger } = {}) {
   debug(logger, `Fetching playlist tracks (${playlistId})`);
   return createPaginationStream(function getPlaylistTracks(options) {
-    return api.getPlaylistTracks(username, playlistId, options);
+    return api.getPlaylistTracks(playlistId, options);
   }, { logger });
 }
 
