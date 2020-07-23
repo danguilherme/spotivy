@@ -21,10 +21,20 @@ function searchVideo(term, { logger } = {}) {
       maxResults: 20, // results per page
       q: term,
       type: 'video'
-    }, (err, results) => {
-      if (err) {
-        reject(err);
-        return;
+    }, (error, results) => {
+      if (error) {
+        const quotaExceededError = error.errors.find(e => 
+          (e.domain === 'youtube.quota' && e.reason === 'quotaExceeded')
+        );
+        if (quotaExceededError) {
+          const newError = new Error(
+            'Your YouTube API quota has exceeded. Read more here: https://developers.google.com/youtube/v3/getting-started#quota'
+          );
+          newError.originalError = error;
+          return reject(newError);
+        }
+
+        return reject(error);
       }
 
       debug(logger, `Search video: ${results.items.length} item(s) returned`);
@@ -59,8 +69,7 @@ function searchMusicVideo(term, { logger } = {}) {
       }
 
       return foundVideo;
-    })
-    .catch(x => console.error(x));
+    });
 }
 
 function searchMusicAudio(term, { logger } = {}) {
@@ -69,8 +78,7 @@ function searchMusicAudio(term, { logger } = {}) {
       if (results[0])
         debug(logger, `Search music audio: selected "${results[0].snippet.title}", by ${results[0].snippet.channelTitle}`);
       return results[0];
-    })
-    .catch(x => console.error(x));
+    });
 }
 
 function isGoodMusicVideoContent(videoSearchResultItem) {

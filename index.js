@@ -194,6 +194,11 @@ function cmd_track(tracks,
 function handleDownloadError(err, logger) {
   info(logger, chalk.bold.red(leftPad("[Download failed]", INFO_COLUMN_WIDTH)), err.message || err);
   debug(logger, err.stack);
+
+  const extraInfo = JSON.stringify(err, null, 2);
+  if (extraInfo !== '{}') {
+    debug(logger, 'Extra info:\n' + JSON.stringify(err, null, 2));
+  }
 }
 
 init();
@@ -289,6 +294,7 @@ function downloadYoutubeVideo(name, location = './', { quality = 'highest', logg
   let videoSearchPromise = youtube.searchMusicVideo(name, { logger });
 
   return highland(videoSearchPromise) // search the video
+    .errors(err => handleDownloadError(err, logger))
     .flatMap(video => highland((push, next) => {
       if (!video) {
         warn(logger, `Video not found!`);
@@ -322,16 +328,6 @@ function downloadYoutubeVideo(name, location = './', { quality = 'highest', logg
  * @returns {Highland.Stream}
  */
 function downloadYoutubeAudio(name, location = './', { logger } = {}) {
-  /**
-   * Example string: audio/mp4; codecs="mp4a.40.2"
-   * - Group #0: audio/mp4; codecs="mp4a.40.2"
-   * - Group #1: audio/mp4
-   * - Group #2: audio
-   * - Group #3: mp4
-   * - Group #4: mp4a.40.2
-   */
-  const formatTypeRegex = /((.*)\/(.*)); codecs="(.*)"/;
-
   const fullPath = fsPath.join(location, `${createFolderName(name)}.mp3`);
   // setup folders
   if (!fs.existsSync(location))
@@ -352,17 +348,7 @@ function downloadYoutubeAudio(name, location = './', { logger } = {}) {
       let writeStream = fs.createWriteStream(fullPath);
       let videoStream = ytdl(downloadUrl, {
         quality: 140, // M4A AAC 128 kbps
-        filter: function mp4AudioFilter(f) {
-          if (!f.type) return false;
-
-          const [, typeAndFormat, type, format, codec] = formatTypeRegex.exec(f.type);
-          const shouldDownload = type === 'audio' && format === 'mp4';
-
-          if (shouldDownload)
-            debug(logger, `File type: ${typeAndFormat} (${codec})`);
-
-          return shouldDownload;
-        }
+        filter: 'audioonly'
       });
 
       return highland(videoStream)
