@@ -1,7 +1,7 @@
 {
   "name": "spotivy",
   "description": "Spotify music videos downloader",
-  "version": "0.4.7",
+  "version": "0.4.8",
   "author": "Guilherme Ventura <guilhermeventura2@gmail.com> (https://danguilherme.github.io/)",
   "license": "MIT",
   "repository": "danguilherme/spotivy",
