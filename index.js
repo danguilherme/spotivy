@@ -166,7 +166,7 @@ function cmd_playlist(playlists,
       .then(() => youtube.login(youtubeKey))
       .then(() => {
         highland(playlists)
-          .flatMap(playlist => highland(spotify.getPlaylist(playlist)))
+          .flatMap(playlist => highland(spotify.getPlaylist(playlist, { logger })))
           .flatMap(playlist => downloadPlaylist(playlist, { format, quality, path: output, createSubFolder: !flat, logger }))
           .errors(err => handleDownloadError(err, logger))
           .done(resolve);
@@ -183,7 +183,7 @@ function cmd_track(tracks,
       .then(() => youtube.login(youtubeKey))
       .then(() => {
         highland(tracks)
-          .flatMap(track => highland(spotify.getTrack(track)))
+          .flatMap(track => highland(spotify.getTrack(track, { logger })))
           .flatMap(track => highland(downloadTrack(track, { format, quality, path: output, logger })))
           .errors(err => handleDownloadError(err, logger))
           .done(resolve);

@@ -1,7 +1,7 @@
 const SpotifyWebApi = require('spotify-web-api-node');
 const highland = require('highland');
 
-const { debug } = require('./log');
+const { debug, error } = require('./log');
 
 let api = null;
 
@@ -16,26 +16,39 @@ function login(clientId, clientSecret, { logger } = {}) {
 
     api = new SpotifyWebApi({ clientId, clientSecret });
 
+    debug(logger, 'Granting credentials...');
     // Retrieve an access token.
     api.clientCredentialsGrant()
       .then(function (data) {
         // Save the access token so that it's used in future calls
         api.setAccessToken(data.body['access_token']);
 
+        debug(logger, 'Spotify login successful');
         resolve(api);
       }, function (err) {
-        console.error('Something went wrong when retrieving an access token', err);
+        error(logger, `Something went wrong when retrieving an access token: ${err.message}`);
+        debug(logger, `Stack trace:\n${err.stack}`);
         reject(err);
       });
   })
 }
 
 function getTrack(trackId, { logger } = {}) {
-  return api.getTrack(trackId).then(r => r.body);
+  debug(logger, `Fetch track: ${trackId}`);
+  return api.getTrack(trackId).then(trackResponse => {
+    const track = trackResponse.body;
+    debug(logger, `Success: ${track.name}`);
+    return track;
+  });
 }
 
 function getPlaylist(playlistId, { logger } = {}) {
-  return api.getPlaylist(playlistId).then(r => r.body);
+  debug(logger, `Fetch playlist: ${playlistId}`);
+  return api.getPlaylist(playlistId).then(playlistResponse => {
+    const playlist = playlistResponse.body;
+    debug(logger, `Success: ${playlist.name}`);
+    return playlist;
+  });
 }
 
 function getAllUserPlaylists(username, { logger } = {}) {
