@@ -1,3 +1,3 @@
 module.exports = {
-  INFO_COLUMN_WIDTH: 25
+  INFO_COLUMN_WIDTH: 25,
 };

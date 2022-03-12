@@ -18,7 +18,7 @@ const { info, debug, warn } = require('./log');
 // commands
 const { init: cmd_init } = require('./commands');
 
-const METADATA_FILE = ".downloaded";
+const METADATA_FILE = '.downloaded';
 const cwd = process.cwd();
 const defaultOutputPath = fsPath.join(cwd, 'media');
 const configPath = fsPath.join(cwd, 'config.json');
@@ -30,35 +30,40 @@ const qualityMap = {
   '240p': 36,
   '360p': 18,
   '720p': 22,
-  'highest': 'highest',
-  'lowest': 'lowest'
+  highest: 'highest',
+  lowest: 'lowest',
 };
 
 function init() {
-  caporal
-    .name('spotivy')
-    .version(pkg.version)
-    .help(pkg.description);
+  caporal.name('spotivy').version(pkg.version).help(pkg.description);
 
-  // command: download user playlist(s)
-  var commandInit = caporal.command('init', 'Tool introduction and configuration')
-    .help('Configure the tool with the keys from Spotify and YouTube. Creates the config file in the current folder.')
+  // command: set up the config file
+  var commandInit = caporal
+    .command('init', 'Tool introduction and configuration')
+    .help(
+      'Configure the tool with the keys from Spotify and YouTube. Creates the config file in the current folder.'
+    )
     .action((args, options, logger) => {
       beforeCommand(logger);
 
-      cmd_init(configPath, { logger })
-        .then(() => afterCommand(logger));
+      cmd_init(configPath, { logger }).then(() => afterCommand(logger));
     });
 
   // command: download user playlist(s)
-  var commandPlaylist = caporal.command('playlist', 'Download public playlists from the given user')
+  var commandPlaylist = caporal
+    .command('playlist', 'Download public playlists from the given user')
     .help('Download public playlists from the given user')
     .argument('<username>', 'The id of the playlist owner')
-    .argument('[playlists...]', 'Playlist IDs. If none, all user playlists will be downloaded')
+    .argument(
+      '[playlists...]',
+      'Playlist IDs. If none, all user playlists will be downloaded'
+    )
     .action((args, options, logger) => {
       beforeCommand(logger);
 
-      const config = loadConfig(configPath, Object.assign({}, options, args), { logger });
+      const config = loadConfig(configPath, Object.assign({}, options, args), {
+        logger,
+      });
       let cmdPromise;
 
       info(logger, `Saving media to '${config.output}'\n`);
@@ -72,7 +77,7 @@ function init() {
           quality: qualityMap[config.quality],
           output: config.output,
           flat: config.flat,
-          logger
+          logger,
         });
       } else {
         cmdPromise = cmd_playlist(args.playlists, {
@@ -83,20 +88,23 @@ function init() {
           quality: qualityMap[config.quality],
           output: config.output,
           flat: config.flat,
-          logger
-        })
+          logger,
+        });
       }
 
       cmdPromise.then(() => afterCommand(logger));
     });
 
   // command: download track
-  let commandTrack = caporal.command('track', 'Download single tracks')
+  let commandTrack = caporal
+    .command('track', 'Download single tracks')
     .help('Download single tracks')
     .argument('<tracks...>', 'Track IDs (may be more than one)')
     .action((args, options, logger) => {
       beforeCommand(logger);
-      const config = loadConfig(configPath, Object.assign({}, options, args), { logger });
+      const config = loadConfig(configPath, Object.assign({}, options, args), {
+        logger,
+      });
 
       info(logger, `Saving media to '${config.output}'\n`);
 
@@ -108,9 +116,8 @@ function init() {
         quality: qualityMap[config.quality],
         output: config.output,
         flat: config.flat,
-        logger
-      })
-        .then(() => afterCommand(logger));
+        logger,
+      }).then(() => afterCommand(logger));
     });
 
   configureGlobalOptions(commandPlaylist);
@@ -121,14 +128,50 @@ function init() {
 
 function configureGlobalOptions(caporalCommand) {
   return caporalCommand
-    .option('-o, --output <output>', 'Location where to save the downloaded media', /\w*/, defaultOutputPath)
-    .option('-f, --format <format>', "The format of the file to download. Either 'video' or 'audio'", ["audio", "video"], 'video')
-    .option('-q, --quality <quality>', `The quality of the video to download (desconsidered if format=audio).\nOptions: ${Object.keys(qualityMap).join(', ')}`, Object.keys(qualityMap), 'highest')
-    .option('--flat', 'Flag to indicate if the files must be saved directly in the output folder, without subfolders', caporal.BOOLEAN, false)
-    .option('-a, --audio', "Download tracks as audio. Same as --format audio", caporal.BOOLEAN, false)
-    .option('--spotify-client-id [client-id]', 'Spotify app client ID (from https://developer.spotify.com/my-applications/)')
-    .option('--spotify-client-secret [client-secret]', 'Spotify app client secret (from https://developer.spotify.com/my-applications/)')
-    .option('--youtube-key [key]', 'Youtube API key (from https://console.developers.google.com)');
+    .option(
+      '-o, --output <output>',
+      'Location where to save the downloaded media',
+      /\w*/,
+      defaultOutputPath
+    )
+    .option(
+      '-f, --format <format>',
+      "The format of the file to download. Either 'video' or 'audio'",
+      ['audio', 'video'],
+      'video'
+    )
+    .option(
+      '-q, --quality <quality>',
+      `The quality of the video to download (desconsidered if format=audio).\nOptions: ${Object.keys(
+        qualityMap
+      ).join(', ')}`,
+      Object.keys(qualityMap),
+      'highest'
+    )
+    .option(
+      '--flat',
+      'Flag to indicate if the files must be saved directly in the output folder, without subfolders',
+      caporal.BOOLEAN,
+      false
+    )
+    .option(
+      '-a, --audio',
+      'Download tracks as audio. Same as --format audio',
+      caporal.BOOLEAN,
+      false
+    )
+    .option(
+      '--spotify-client-id [client-id]',
+      'Spotify app client ID (from https://developer.spotify.com/my-applications/)'
+    )
+    .option(
+      '--spotify-client-secret [client-secret]',
+      'Spotify app client secret (from https://developer.spotify.com/my-applications/)'
+    )
+    .option(
+      '--youtube-key [key]',
+      'Youtube API key (from https://console.developers.google.com)'
+    );
 }
 
 function beforeCommand(logger) {
@@ -137,54 +180,105 @@ function beforeCommand(logger) {
 
 function afterCommand(logger) {
   info(logger);
-  info(logger, chalk.bold.green(`[${pkg.name} v${pkg.version}]`), 'Finished successfuly');
+  info(
+    logger,
+    chalk.bold.green(`[${pkg.name} v${pkg.version}]`),
+    'Finished successfuly'
+  );
 }
 
-function cmd_user(username,
-  { spotifyClientId, spotifyClientSecret, youtubeKey,
-    format, quality, output, flat, logger } = {}) {
-
+function cmd_user(
+  username,
+  {
+    spotifyClientId,
+    spotifyClientSecret,
+    youtubeKey,
+    format,
+    quality,
+    output,
+    flat,
+    logger,
+  } = {}
+) {
   return new Promise((resolve, reject) => {
     spotify
       .login(spotifyClientId, spotifyClientSecret, { logger })
       .then(() => youtube.login(youtubeKey))
       .then(function () {
-        return downloadUserPlaylists(username, { format, quality, path: output, createSubFolder: !flat, logger })
+        return downloadUserPlaylists(username, {
+          format,
+          quality,
+          path: output,
+          createSubFolder: !flat,
+          logger,
+        })
           .errors(err => handleDownloadError(err, logger))
           .done(resolve);
       });
   });
 }
 
-function cmd_playlist(playlists,
-  { spotifyClientId, spotifyClientSecret, youtubeKey,
-    format, quality, output, flat, logger } = {}) {
-
+function cmd_playlist(
+  playlists,
+  {
+    spotifyClientId,
+    spotifyClientSecret,
+    youtubeKey,
+    format,
+    quality,
+    output,
+    flat,
+    logger,
+  } = {}
+) {
   return new Promise((resolve, reject) => {
-
-    spotify.login(spotifyClientId, spotifyClientSecret, { logger })
+    spotify
+      .login(spotifyClientId, spotifyClientSecret, { logger })
       .then(() => youtube.login(youtubeKey))
       .then(() => {
         highland(playlists)
-          .flatMap(playlist => highland(spotify.getPlaylist(playlist, { logger })))
-          .flatMap(playlist => downloadPlaylist(playlist, { format, quality, path: output, createSubFolder: !flat, logger }))
+          .flatMap(playlist =>
+            highland(spotify.getPlaylist(playlist, { logger }))
+          )
+          .flatMap(playlist =>
+            downloadPlaylist(playlist, {
+              format,
+              quality,
+              path: output,
+              createSubFolder: !flat,
+              logger,
+            })
+          )
           .errors(err => handleDownloadError(err, logger))
           .done(resolve);
       });
   });
 }
 
-function cmd_track(tracks,
-  { spotifyClientId, spotifyClientSecret, youtubeKey,
-    format, quality, output, logger } = {}) {
-
+function cmd_track(
+  tracks,
+  {
+    spotifyClientId,
+    spotifyClientSecret,
+    youtubeKey,
+    format,
+    quality,
+    output,
+    logger,
+  } = {}
+) {
   return new Promise((resolve, reject) => {
-    spotify.login(spotifyClientId, spotifyClientSecret, { logger })
+    spotify
+      .login(spotifyClientId, spotifyClientSecret, { logger })
       .then(() => youtube.login(youtubeKey))
       .then(() => {
         highland(tracks)
           .flatMap(track => highland(spotify.getTrack(track, { logger })))
-          .flatMap(track => highland(downloadTrack(track, { format, quality, path: output, logger })))
+          .flatMap(track =>
+            highland(
+              downloadTrack(track, { format, quality, path: output, logger })
+            )
+          )
           .errors(err => handleDownloadError(err, logger))
           .done(resolve);
       });
@@ -192,7 +286,11 @@ function cmd_track(tracks,
 }
 
 function handleDownloadError(err, logger) {
-  info(logger, chalk.bold.red(leftPad("[Download failed]", INFO_COLUMN_WIDTH)), err.message || err);
+  info(
+    logger,
+    chalk.bold.red(leftPad('[Download failed]', INFO_COLUMN_WIDTH)),
+    err.message || err
+  );
   debug(logger, err.stack);
 
   const extraInfo = JSON.stringify(err, null, 2);
@@ -203,31 +301,47 @@ function handleDownloadError(err, logger) {
 
 init();
 
-
-
-
-
-function downloadUserPlaylists(username,
-  { format, quality, path, createSubFolder = true, logger } = {}) {
-
-  if (createSubFolder)
-    path = fsPath.join(path, createFolderName(username));
+function downloadUserPlaylists(
+  username,
+  { format, quality, path, createSubFolder = true, logger } = {}
+) {
+  if (createSubFolder) path = fsPath.join(path, createFolderName(username));
 
   return spotify
     .getAllUserPlaylists(username, { logger })
     .sequence()
-    .flatMap(playlist => downloadPlaylist(playlist, { format, quality, path, createSubFolder, logger }));
+    .flatMap(playlist =>
+      downloadPlaylist(playlist, {
+        format,
+        quality,
+        path,
+        createSubFolder,
+        logger,
+      })
+    );
 }
 
 /**
  * Download all tracks from the given playlist
- * 
- * @param {SpotifyPlaylist} playlist 
- * @param {*} param1 
+ *
+ * @param {SpotifyPlaylist} playlist
+ * @param {*} param1
  */
-function downloadPlaylist(playlist,
-  { format = 'video', quality, path = './', createSubFolder = true, logger } = {}) {
-  info(logger, chalk.bold.blue(leftPad("[Downloading playlist]", INFO_COLUMN_WIDTH)), playlist.name);
+function downloadPlaylist(
+  playlist,
+  {
+    format = 'video',
+    quality,
+    path = './',
+    createSubFolder = true,
+    logger,
+  } = {}
+) {
+  info(
+    logger,
+    chalk.bold.blue(leftPad('[Downloading playlist]', INFO_COLUMN_WIDTH)),
+    playlist.name
+  );
 
   let targetPath = path;
   if (createSubFolder)
@@ -240,23 +354,35 @@ function downloadPlaylist(playlist,
     .sequence()
     .map(playlistTrack => playlistTrack.track)
     .filter(track => !isTrackDownloaded(track.id, metadata))
-    .flatMap(track => downloadTrack(track, { format, quality, path: targetPath, logger, metadata }));
+    .flatMap(track =>
+      downloadTrack(track, {
+        format,
+        quality,
+        path: targetPath,
+        logger,
+        metadata,
+      })
+    );
 }
 
 /**
  * Download the specified track on disk
- * 
+ *
  * @param {SpotifyTrack} track
  * @param {Object} options
  * - format: `video` or `audio`
  * - path: where the track will be saved on disk
  */
-function downloadTrack(track,
-  { format = 'video', quality, path = './', logger,
-    metadata } = {}) {
-
+function downloadTrack(
+  track,
+  { format = 'video', quality, path = './', logger, metadata } = {}
+) {
   let trackName = `${track.artists[0].name} - ${track.name}`;
-  info(logger, chalk.bold.blue(leftPad("[Downloading track]", INFO_COLUMN_WIDTH)), trackName);
+  info(
+    logger,
+    chalk.bold.blue(leftPad('[Downloading track]', INFO_COLUMN_WIDTH)),
+    trackName
+  );
 
   let metadataPath = fsPath.join(path, METADATA_FILE);
   if (!metadata) {
@@ -268,7 +394,8 @@ function downloadTrack(track,
     return throughStream();
   }
 
-  let downloadFunction = format === 'video' ? downloadYoutubeVideo : downloadYoutubeAudio;
+  let downloadFunction =
+    format === 'video' ? downloadYoutubeVideo : downloadYoutubeAudio;
   return downloadFunction(trackName, path, { quality, logger })
     .map(() => updateMetadata(track, metadata))
     .map(() => saveMetadata(metadata, metadataPath));
@@ -285,40 +412,44 @@ function downloadTrack(track,
  * @param {string} [location='./'] Where the video file should be saved
  * @returns {Promise}
  */
-function downloadYoutubeVideo(name, location = './', { quality = 'highest', logger } = {}) {
+function downloadYoutubeVideo(
+  name,
+  location = './',
+  { quality = 'highest', logger } = {}
+) {
   let fullPath = fsPath.join(location, `${createFolderName(name)}.mp4`);
   // setup folders
-  if (!fs.existsSync(location))
-    mkdirp.sync(location);
+  if (!fs.existsSync(location)) mkdirp.sync(location);
 
   let videoSearchPromise = youtube.searchMusicVideo(name, { logger });
 
   return highland(videoSearchPromise) // search the video
     .errors(err => handleDownloadError(err, logger))
-    .flatMap(video => highland((push, next) => {
-      if (!video) {
-        warn(logger, `Video not found!`);
-        push(null, highland.nil);
-        return throughStream();
-      }
-
-      let downloadUrl = `https://www.youtube.com/watch?v=${video.id.videoId}`;
-      debug(logger, `Download from: ${downloadUrl}`);
-      debug(logger, `Download to  : ${fullPath}`);
-
-      let writeStream = fs.createWriteStream(fullPath);
-      let videoStream = ytdl(downloadUrl, { quality });
-
-      return highland(videoStream)
-        .pipe(writeStream)
-        .on('finish', () => {
-          debug(logger, 'Finish write:', name);
-          push(null, fullPath);
+    .flatMap(video =>
+      highland((push, next) => {
+        if (!video) {
+          warn(logger, `Video not found!`);
           push(null, highland.nil);
-        });
-    }));
-}
+          return throughStream();
+        }
 
+        let downloadUrl = `https://www.youtube.com/watch?v=${video.id.videoId}`;
+        debug(logger, `Download from: ${downloadUrl}`);
+        debug(logger, `Download to  : ${fullPath}`);
+
+        let writeStream = fs.createWriteStream(fullPath);
+        let videoStream = ytdl(downloadUrl, { quality });
+
+        return highland(videoStream)
+          .pipe(writeStream)
+          .on('finish', () => {
+            debug(logger, 'Finish write:', name);
+            push(null, fullPath);
+            push(null, highland.nil);
+          });
+      })
+    );
+}
 
 /**
  * Downloads the audio from the given video from YouTube.
@@ -330,11 +461,10 @@ function downloadYoutubeVideo(name, location = './', { quality = 'highest', logg
 function downloadYoutubeAudio(name, location = './', { logger } = {}) {
   const fullPath = fsPath.join(location, `${createFolderName(name)}.mp3`);
   // setup folders
-  if (!fs.existsSync(location))
-    mkdirp.sync(location);
+  if (!fs.existsSync(location)) mkdirp.sync(location);
 
-  return highland(youtube.searchMusicAudio(name, { logger }))
-    .flatMap(video => highland((push, next) => {
+  return highland(youtube.searchMusicAudio(name, { logger })).flatMap(video =>
+    highland((push, next) => {
       if (!video) {
         warn(logger, `Audio not found!`);
         push(null, highland.nil);
@@ -348,7 +478,7 @@ function downloadYoutubeAudio(name, location = './', { logger } = {}) {
       let writeStream = fs.createWriteStream(fullPath);
       let videoStream = ytdl(downloadUrl, {
         quality: 140, // M4A AAC 128 kbps
-        filter: 'audioonly'
+        filter: 'audioonly',
       });
 
       return highland(videoStream)
@@ -359,7 +489,8 @@ function downloadYoutubeAudio(name, location = './', { logger } = {}) {
           push(null, fullPath);
           push(null, highland.nil);
         });
-    }));
+    })
+  );
 }
 
 ////
@@ -386,28 +517,30 @@ function updateMetadata(track, metadata) {
 /**
  * Get metadata object.
  * Read from file if the parameter is a path.
- * 
+ *
  * @param {String|Object} pathOrData if it's a string, will read the metadata file on this exact location. If object, return it
  */
 function getMetadata(pathOrData) {
   if (typeof pathOrData === 'string')
-    return metadata = loadMetadata(pathOrData);
+    return (metadata = loadMetadata(pathOrData));
   return pathOrData;
 }
 
 function loadMetadata(location) {
   if (!fs.existsSync(location))
-    saveMetadata({
-      ids: [],
-      names: {}
-    }, location);
+    saveMetadata(
+      {
+        ids: [],
+        names: {},
+      },
+      location
+    );
 
   return JSON.parse(fs.readFileSync(location, 'utf-8'));
 }
 
 function saveMetadata(metadata, location) {
-  if (!fs.existsSync(location))
-    mkdirp.sync(fsPath.dirname(location));
+  if (!fs.existsSync(location)) mkdirp.sync(fsPath.dirname(location));
   fs.writeFileSync(location, JSON.stringify(metadata, null, 2));
 }
 
@@ -425,7 +558,7 @@ function createFolderName(name) {
   return name
     .replace(/[\\\/\*<>]/gi, '-')
     .replace(/"/gi, "'")
-    .replace(/[\?:]/gi, "");
+    .replace(/[\?:]/gi, '');
 }
 
 function loadConfig(configFilePath, parsedArgs, { logger } = {}) {
@@ -435,7 +568,7 @@ function loadConfig(configFilePath, parsedArgs, { logger } = {}) {
     config.spotifyClientId = configFile.spotify.clientId;
     config.spotifyClientSecret = configFile.spotify.clientSecret;
     config.youtubeKey = configFile.youtube.key;
-  } catch (e) { }
+  } catch (e) {}
 
   // parsed args have preference
   parsedArgs = JSON.parse(JSON.stringify(parsedArgs)); // remove undefined keys

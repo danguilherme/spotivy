@@ -18,19 +18,24 @@ function login(clientId, clientSecret, { logger } = {}) {
 
     debug(logger, 'Granting credentials...');
     // Retrieve an access token.
-    api.clientCredentialsGrant()
-      .then(function (data) {
+    api.clientCredentialsGrant().then(
+      function (data) {
         // Save the access token so that it's used in future calls
         api.setAccessToken(data.body['access_token']);
 
         debug(logger, 'Spotify login successful');
         resolve(api);
-      }, function (err) {
-        error(logger, `Something went wrong when retrieving an access token: ${err.message}`);
+      },
+      function (err) {
+        error(
+          logger,
+          `Something went wrong when retrieving an access token: ${err.message}`
+        );
         debug(logger, `Stack trace:\n${err.stack}`);
         reject(err);
-      });
-  })
+      }
+    );
+  });
 }
 
 function getTrack(trackId, { logger } = {}) {
@@ -53,16 +58,22 @@ function getPlaylist(playlistId, { logger } = {}) {
 
 function getAllUserPlaylists(username, { logger } = {}) {
   debug(logger, `Fetching playlists of ${username}`);
-  return createPaginationStream(function getPlaylistTracks(options) {
-    return api.getUserPlaylists(username, options);
-  }, { logger });
+  return createPaginationStream(
+    function getPlaylistTracks(options) {
+      return api.getUserPlaylists(username, options);
+    },
+    { logger }
+  );
 }
 
 function getAllPlaylistTracks(playlistId, { logger } = {}) {
   debug(logger, `Fetching playlist tracks (${playlistId})`);
-  return createPaginationStream(function getPlaylistTracks(options) {
-    return api.getPlaylistTracks(playlistId, options);
-  }, { logger });
+  return createPaginationStream(
+    function getPlaylistTracks(options) {
+      return api.getPlaylistTracks(playlistId, options);
+    },
+    { logger }
+  );
 }
 
 function createPaginationStream(endpointFn, { logger } = {}) {
@@ -82,7 +93,10 @@ function createPaginationStream(endpointFn, { logger } = {}) {
         totalItemsCount = data.body.total;
         loadedItemsCount += data.body.items.length;
 
-        debug(logger, `Fetch paginated: loaded  ${loadedItemsCount}/${totalItemsCount}`);
+        debug(
+          logger,
+          `Fetch paginated: loaded  ${loadedItemsCount}/${totalItemsCount}`
+        );
         debug(logger, `Fetch paginated: pushing down the stream`);
 
         // put the items down to the stream
@@ -105,5 +119,5 @@ module.exports = {
   getTrack,
   getPlaylist,
   getAllUserPlaylists,
-  getAllPlaylistTracks
+  getAllPlaylistTracks,
 };

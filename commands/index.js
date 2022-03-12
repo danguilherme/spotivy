@@ -1,3 +1,3 @@
 module.exports = {
-  init: require('./init')
+  init: require('./init'),
 };

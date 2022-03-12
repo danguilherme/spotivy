@@ -1,4 +1,5 @@
 # Spotivy
+
 > Spotify music videos downloader
 
 ![Application preview](screenshot.png)
@@ -6,6 +7,7 @@
 Download all tracks from your Spotify playlists as videos or MP3.
 
 ## How it Works
+
 Spotivy gets the track information from Spotify and then search YouTube in the format of `${artist_name} - ${track_name}`.
 
 To decide which video to download from the returned list, it applies a [very simple test](https://github.com/danguilherme/spotivy/blob/v0.4.3/youtube_search.js#L76-L80) for each item:
@@ -19,46 +21,64 @@ If any of these assertions is true for the video being tested, this is the media
 It's not precise, but it does the job 90% of the time. [Any suggestion is welcome!](https://github.com/danguilherme/spotivy/issues/8)
 
 ## Configuration
+
 1.  Install the CLI
     ```bash
     npm install -g spotivy
     ```
 1.  Follow the instructions in the `init` command:
+
     ```bash
     spotivy init
     ```
+
     Basically, you'll need to create the keys to use Spotify and YouTube APIs, and configure the tool with them:
+
     1.  Create an [YouTube API key](https://console.developers.google.com) and put in the specified prompt.
     1.  Create an application on [Spotify Developers website](https://developer.spotify.com/my-applications/), get the **Client ID** and **Client Secret** values, and do the same when requested by the tool.
 
-    * **Note:** You can also pass the credentials in each command call:
+    - **Note:** You can also pass the credentials in each command call:
+
     ```bash
     spotivy playlist danguilherme --spotify-client-id=clientid --spotify-client-secret=clientsecret --youtube-key=ytkey
     ```
 
 ## Usage
+
 ```bash
 spotivy help
 ```
 
 ### Commands
-- [Tool configuration](#init)
-- [Download user playlists](#download-playlists)
-- [Download single tracks](#download-single-tracks)
+
+- [Spotivy](#spotivy)
+  - [How it Works](#how-it-works)
+  - [Configuration](#configuration)
+  - [Usage](#usage)
+    - [Commands](#commands)
+    - [Global Options](#global-options)
+    - [Init](#init)
+    - [Download playlists](#download-playlists)
+    - [Download single tracks](#download-single-tracks)
+- [License](#license)
 
 ### Global Options
+
 These options are accepted by **any command**.
 
-| Option | Description | Default |
-| ------ | ------ | ------ |
-| `-o`, `--output` | location where to save the downloaded media | `./media` |
-| `-f`, `--format` | the format of the file to download. Either `video` or `audio` | `video` |
-| `-q`, `--quality` | the [quality](https://en.wikipedia.org/w/index.php?title=YouTube&oldid=800910021#Quality_and_formats) in which the video should be downloaded (ignored if `--format=audio`). Options: `144p`, `240p`, `360p`, `720p`, `highest`, `lowest` | `highest` |
-| `--flat` | indicates if the files must be saved in one single folder (no subfolders) | - |
-| `-a`, `--audio` | flag to download as audio; equivalent to `--format=audio` | - |
-| `-v`, `--verbose` | show detailed logs | - |
+| Option            | Description                                                                                                                                           | Default   |
+| ----------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------- | --------- |
+| `-o`, `--output`  | Location where to save the downloaded media.                                                                                                          | `./media` |
+| `-f`, `--format`  | The format of the file to download. Either `video` or `audio`.                                                                                        | `video`   |
+| `-q`, `--quality` | The [quality][1] in which the video should be downloaded (ignored if `--format=audio`). Options: `144p`, `240p`, `360p`, `720p`, `highest`, `lowest`. | `highest` |
+| `--flat`          | Indicates if the files must be saved in one single folder (no subfolders). Useful if you're downloading multiple playlists.                           | -         |
+| `-a`, `--audio`   | Flag to download as audio; equivalent to `--format=audio`.                                                                                            | -         |
+| `-v`, `--verbose` | Show detailed logs.                                                                                                                                   | -         |
+
+[1]: https://en.wikipedia.org/w/index.php?title=YouTube&oldid=800910021#Quality_and_formats 'Youtube quality and formats on Wikipedia'
 
 ### Init
+
 Configure the tool with the keys from Spotify and YouTube.
 
 ```bash
@@ -68,6 +88,7 @@ spotivy help init
 ```
 
 ### Download playlists
+
 Download any public playlists from a given user.
 
 Accepts all [global options](#global-options).
@@ -82,6 +103,7 @@ spotivy help playlist
 ```
 
 ### Download single tracks
+
 Download any track you want by its Spotify ID.
 
 Accepts all [global options](#global-options).
@@ -95,4 +117,5 @@ spotivy help track
 ```
 
 # License
+
 Spotivy is under [MIT License](LICENSE).
