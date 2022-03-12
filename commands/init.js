@@ -1,10 +1,7 @@
 var fs = require('fs');
 const chalk = require('chalk');
 
-const { INFO_COLUMN_WIDTH } = require('../constants');
 const { info, debug, prompt } = require('../log');
-
-const promptChalk = chalk.green;
 
 function cmd_init(configFilePath, { logger } = {}) {
   info(

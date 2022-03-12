@@ -405,6 +405,49 @@ function downloadTrack(
 // DOWNLOAD
 ////
 
+function trackVideoDownload(videoStream, events) {
+  videoStream.on('response', function (response) {
+    const totalSize = response.headers['content-length'];
+    let dataRead = 0;
+    response.on('data', function (data) {
+      dataRead += data.length;
+      const percent = dataRead / totalSize;
+
+      events.onProgressChanged({
+        total: totalSize,
+        read: dataRead,
+        percent,
+      });
+    });
+    response.on('end', function () {
+      events.onEnd();
+    });
+  });
+}
+
+function logVideoDownloadProgress(videoStream) {
+  const leftMargin = leftPad('', INFO_COLUMN_WIDTH);
+  const resetLine = () => {
+    process.stdout.cursorTo(0);
+    process.stdout.clearLine(1);
+  };
+  const print = message => {
+    resetLine();
+    process.stdout.write(`${leftMargin} ${chalk.gray(message)} `);
+  };
+
+  print('Preparing download...');
+  trackVideoDownload(videoStream, {
+    onProgressChanged: function (data) {
+      const { percent } = data;
+      print(`${(percent * 100).toFixed()}%`);
+    },
+    onEnd: function () {
+      resetLine();
+    },
+  });
+}
+
 /**
  * Downloads the given video from YouTube.
  *
@@ -439,6 +482,8 @@ function downloadYoutubeVideo(
 
         let writeStream = fs.createWriteStream(fullPath);
         let videoStream = ytdl(downloadUrl, { quality });
+
+        logVideoDownloadProgress(videoStream);
 
         return highland(videoStream)
           .pipe(writeStream)
@@ -480,6 +525,8 @@ function downloadYoutubeAudio(name, location = './', { logger } = {}) {
         quality: 140, // M4A AAC 128 kbps
         filter: 'audioonly',
       });
+
+      logVideoDownloadProgress(videoStream);
 
       return highland(videoStream)
         .errors(err => push(err))
