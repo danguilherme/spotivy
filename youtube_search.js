@@ -32,7 +32,7 @@ function searchVideo(term, { logger } = {}) {
         q: term,
         type: 'video',
       },
-      (error, { data }) => {
+      (error, response) => {
         if (error) {
           const quotaExceededError = error.errors.find(
             e => e.domain === 'youtube.quota' && e.reason === 'quotaExceeded'
@@ -47,6 +47,8 @@ function searchVideo(term, { logger } = {}) {
 
           return reject(error);
         }
+
+        const { data } = response;
 
         debug(logger, `Search video: ${data.items.length} item(s) returned`);
         resolve(data.items);
