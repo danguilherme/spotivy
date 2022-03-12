@@ -9,7 +9,7 @@ const mkdirp = require('mkdirp');
 const chalk = require('chalk');
 const highland = require('highland');
 
-const pkg = require('./package.json');
+const pkg = require('../package.json');
 const youtube = require('./youtube_search');
 const spotify = require('./spotify');
 const { INFO_COLUMN_WIDTH } = require('./constants');

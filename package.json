@@ -13,13 +13,13 @@
   ],
   "scripts": {
     "prestart": "npm install",
-    "run-bin": "node index.js",
-    "start": "node index.js init",
+    "run-bin": "node src/index.js",
+    "start": "node src/index.js init",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
-  "main": "index.js",
+  "main": "src/index.js",
   "bin": {
-    "spotivy": "./index.js"
+    "spotivy": "./src/index.js"
   },
   "dependencies": {
     "caporal": "1.4.0",
