@@ -1,14 +1,20 @@
 const Youtube = require('youtube-api');
 
-const { debug } = require('./log');
+const { debug, error } = require('./log');
 
-function login(key) {
+function login(key, { logger } = {}) {
+  debug(logger, `Youtube login`);
   return new Promise((resolve, reject) => {
     const result = Youtube.authenticate({
       type: 'key',
       key
     });
+    debug(logger, `Youtube login: success`);
     resolve(result);
+  }, function (e) {
+    debug(logger, `Youtube login failed: ${e.message}`);
+    error(logger, `Stack trace:\n${e.stack}`);
+    reject(e);
   });
 }
 
@@ -21,7 +27,7 @@ function searchVideo(term, { logger } = {}) {
       maxResults: 20, // results per page
       q: term,
       type: 'video'
-    }, (error, results) => {
+    }, (error, { data }) => {
       if (error) {
         const quotaExceededError = error.errors.find(e => 
           (e.domain === 'youtube.quota' && e.reason === 'quotaExceeded')
@@ -37,8 +43,8 @@ function searchVideo(term, { logger } = {}) {
         return reject(error);
       }
 
-      debug(logger, `Search video: ${results.items.length} item(s) returned`);
-      resolve(results.items);
+      debug(logger, `Search video: ${data.items.length} item(s) returned`);
+      resolve(data.items);
     });
   });
 }
@@ -58,7 +64,7 @@ function searchMusicVideo(term, { logger } = {}) {
           logger,
           `Search music video:`,
           [
-            `${goodResults.length} of the videos are good results:`,
+            `${goodResults.length} of ${results.length} videos are good results:`,
             ...goodResults.map((x, idx) => `${idx + 1}. "${x.snippet.title}", by ${x.snippet.channelTitle}`)
           ]
         );
