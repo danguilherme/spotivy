@@ -59,6 +59,7 @@ spotivy help
     - [Global Options](#global-options)
     - [Init](#init)
     - [Download playlists](#download-playlists)
+      - [Available Options](#available-options)
     - [Download single tracks](#download-single-tracks)
 - [License](#license)
 
@@ -90,12 +91,6 @@ spotivy help init
 
 Download any public playlists from a given user.
 
-| Option   | Description                                                                                                                 | Default |
-| -------- | --------------------------------------------------------------------------------------------------------------------------- | ------- |
-| `--flat` | Indicates if the files must be saved in one single folder (no subfolders). Useful if you're downloading multiple playlists. | -       |
-
-Also accepts all [global options](#global-options).
-
 ```bash
 spotivy playlist <username> [playlist_ids...] # user id and playlist id, zero or more
 spotivy playlist danguilherme # download all public playlists from the user
@@ -104,6 +99,14 @@ spotivy playlist danguilherme 3BG5tkH8g77ClLThZiosGD 3Zpkeg6VE5wj5eghBxv0R6 -a #
 
 spotivy help playlist
 ```
+
+#### Available Options
+
+| Option   | Description                                                                                                                 | Default |
+| -------- | --------------------------------------------------------------------------------------------------------------------------- | ------- |
+| `--flat` | Indicates if the files must be saved in one single folder (no subfolders). Useful if you're downloading multiple playlists. | -       |
+
+Also accepts all [global options](#global-options).
 
 ### Download single tracks
 
