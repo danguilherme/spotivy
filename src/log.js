@@ -2,7 +2,9 @@ const chalk = require('chalk');
 const leftPad = require('left-pad');
 const readline = require('readline');
 
-const { INFO_COLUMN_WIDTH } = require('./constants');
+const INFO_COLUMN_WIDTH = 25;
+
+module.exports = { INFO_COLUMN_WIDTH, info, debug, error, warn, prompt };
 
 const debugPrimaryColor = chalk.reset.cyan;
 const debugSecondaryColor = chalk.reset.cyan.bold;
@@ -68,5 +70,3 @@ function prompt(text) {
     });
   });
 }
-
-module.exports = { info, debug, error, warn, prompt };

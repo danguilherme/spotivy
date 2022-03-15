@@ -7,8 +7,7 @@ const chalk = require('chalk');
 const highland = require('highland');
 
 const youtube = require('./youtube_search');
-const { INFO_COLUMN_WIDTH } = require('./constants');
-const { info, debug, warn } = require('./log');
+const { INFO_COLUMN_WIDTH, info, debug, warn } = require('./log');
 const { throughStream } = require('./stream-helpers');
 const {
   updateMetadata,

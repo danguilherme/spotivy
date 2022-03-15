@@ -1,8 +1,7 @@
 const leftPad = require('left-pad');
 const chalk = require('chalk');
 
-const { INFO_COLUMN_WIDTH } = require('../constants');
-const { info, debug } = require('../log');
+const { INFO_COLUMN_WIDTH, info, debug } = require('../log');
 
 module.exports = { logDownloadError };
 

@@ -5,8 +5,7 @@ const highland = require('highland');
 
 const youtube = require('../youtube_search');
 const spotify = require('../spotify');
-const { INFO_COLUMN_WIDTH } = require('../constants');
-const { info } = require('../log');
+const { INFO_COLUMN_WIDTH, info } = require('../log');
 const { loadMetadata, isTrackDownloaded } = require('../metadata');
 const { createFolderName } = require('../create-folder-name');
 const { downloadTrack } = require('../download');
