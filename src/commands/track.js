@@ -17,12 +17,12 @@ function cmd_track(
     quality,
     output,
     logger,
-  } = {}
+  }
 ) {
   return new Promise((resolve, reject) => {
     spotify
       .login(spotifyClientId, spotifyClientSecret, { logger })
-      .then(() => youtube.login(youtubeKey))
+      .then(() => youtube.login(youtubeKey, { logger }))
       .then(() => {
         highland(tracks)
           .flatMap(track => highland(spotify.getTrack(track, { logger })))
@@ -32,7 +32,7 @@ function cmd_track(
             )
           )
           .errors(err => logDownloadError(err, logger))
-          .done(resolve);
+          .done(() => resolve());
       });
   });
 }

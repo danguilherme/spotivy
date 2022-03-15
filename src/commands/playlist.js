@@ -18,12 +18,12 @@ function cmd_playlist(
     output,
     flat,
     logger,
-  } = {}
+  }
 ) {
   return new Promise((resolve, reject) => {
     spotify
       .login(spotifyClientId, spotifyClientSecret, { logger })
-      .then(() => youtube.login(youtubeKey))
+      .then(() => youtube.login(youtubeKey, { logger }))
       .then(() => {
         highland(playlists)
           .flatMap(playlist =>
@@ -39,7 +39,7 @@ function cmd_playlist(
             })
           )
           .errors(err => logDownloadError(err, logger))
-          .done(resolve);
+          .done(() => resolve());
       });
   });
 }
@@ -55,12 +55,12 @@ function cmd_user(
     output,
     flat,
     logger,
-  } = {}
+  }
 ) {
   return new Promise((resolve, reject) => {
     spotify
       .login(spotifyClientId, spotifyClientSecret, { logger })
-      .then(() => youtube.login(youtubeKey))
+      .then(() => youtube.login(youtubeKey, { logger }))
       .then(function () {
         return downloadUserPlaylists(username, {
           format,
@@ -70,7 +70,7 @@ function cmd_user(
           logger,
         })
           .errors(err => logDownloadError(err, logger))
-          .done(resolve);
+          .done(() => resolve());
       });
   });
 }

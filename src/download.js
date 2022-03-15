@@ -30,7 +30,7 @@ module.exports = { downloadTrack, downloadPlaylist, downloadUserPlaylists };
 /**
  * Download the specified track on disk
  *
- * @param {SpotifyTrack} track
+ * @param {SpotifyApi.TrackObjectSimplified} track
  * @param {Object} options
  * - format: `video` or `audio`
  * - path: where the track will be saved on disk
@@ -65,7 +65,7 @@ function downloadTrack(
 /**
  * Download all tracks from the given playlist
  *
- * @param {SpotifyPlaylist} playlist
+ * @param {SpotifyApi.PlaylistBaseObject} playlist
  * @param {*} param1
  */
 function downloadPlaylist(
@@ -106,7 +106,7 @@ function downloadPlaylist(
 
 function downloadUserPlaylists(
   username,
-  { format, quality, path, createSubFolder = true, logger } = {}
+  { format, quality, path, createSubFolder = true, logger }
 ) {
   if (createSubFolder) path = fsPath.join(path, createFolderName(username));
 
@@ -129,12 +129,12 @@ function downloadUserPlaylists(
  *
  * @param {string} name The name of the video to look for
  * @param {string} [location='./'] Where the video file should be saved
- * @returns {Promise}
+ * @returns {Highland.Stream}
  */
 function downloadYoutubeVideo(
   name,
   location = './',
-  { quality = 'highest', logger } = {}
+  { quality = 'highest', logger = undefined } = {}
 ) {
   let fullPath = fsPath.join(location, `${createFolderName(name)}.mp4`);
   // setup folders
@@ -179,7 +179,11 @@ function downloadYoutubeVideo(
  * @param {string} [location='./'] Where the audio file should be saved
  * @returns {Highland.Stream}
  */
-function downloadYoutubeAudio(name, location = './', { logger } = {}) {
+function downloadYoutubeAudio(
+  name,
+  location = './',
+  { logger = undefined } = {}
+) {
   const fullPath = fsPath.join(location, `${createFolderName(name)}.mp3`);
   // setup folders
   if (!fs.existsSync(location)) mkdirp.sync(location);

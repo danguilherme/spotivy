@@ -2,26 +2,17 @@ const Youtube = require('youtube-api');
 
 const { debug, error } = require('./log');
 
-function login(key, { logger } = {}) {
+async function login(key, { logger }) {
   debug(logger, `Youtube login`);
-  return new Promise(
-    (resolve, reject) => {
-      const result = Youtube.authenticate({
-        type: 'key',
-        key,
-      });
-      debug(logger, `Youtube login: success`);
-      resolve(result);
-    },
-    function (e) {
-      debug(logger, `Youtube login failed: ${e.message}`);
-      error(logger, `Stack trace:\n${e.stack}`);
-      reject(e);
-    }
-  );
+  const result = Youtube.authenticate({
+    type: 'key',
+    key,
+  });
+  debug(logger, `Youtube login: success`);
+  return result;
 }
 
-function searchVideo(term, { logger } = {}) {
+function searchVideo(term, { logger }) {
   return new Promise(function (resolve, reject) {
     debug(logger, `Search video: search "${term}"`);
 
@@ -41,7 +32,7 @@ function searchVideo(term, { logger } = {}) {
             const newError = new Error(
               'Your YouTube API quota has exceeded. Read more here: https://developers.google.com/youtube/v3/getting-started#quota'
             );
-            newError.originalError = error;
+            newError.stack = error.stack;
             return reject(newError);
           }
 
@@ -57,48 +48,45 @@ function searchVideo(term, { logger } = {}) {
   });
 }
 
-function searchMusicVideo(term, { logger } = {}) {
-  return searchVideo(term, { logger }).then(results => {
-    let foundVideo = results[0];
-    let goodResults = results
-      .slice(0, 5) // in the first 5 results...
-      .filter(isGoodMusicVideoContent);
+async function searchMusicVideo(term, { logger }) {
+  const results = await searchVideo(term, { logger });
+  let foundVideo = results[0];
+  let goodResults = results
+    .slice(0, 5) // in the first 5 results...
+    .filter(isGoodMusicVideoContent);
 
-    if (!goodResults.length) {
-      debug(
-        logger,
-        `Search music video: None of the videos is considered a good result`
-      );
-    } else {
-      debug(logger, `Search music video:`, [
-        `${goodResults.length} of ${results.length} videos are good results:`,
-        ...goodResults.map(
-          (x, idx) =>
-            `${idx + 1}. "${x.snippet.title}", by ${x.snippet.channelTitle}`
-        ),
-      ]);
+  if (!goodResults.length) {
+    debug(
+      logger,
+      `Search music video: None of the videos is considered a good result`
+    );
+  } else {
+    debug(logger, `Search music video:`, [
+      `${goodResults.length} of ${results.length} videos are good results:`,
+      ...goodResults.map(
+        (x, idx) =>
+          `${idx + 1}. "${x.snippet.title}", by ${x.snippet.channelTitle}`
+      ),
+    ]);
 
-      // if found a good result (VEVO, official video, ...)
-      foundVideo = goodResults[0];
-      debug(
-        logger,
-        `Search music video: selected "${foundVideo.snippet.title}", by ${foundVideo.snippet.channelTitle}`
-      );
-    }
-
-    return foundVideo;
-  });
+    // if found a good result (VEVO, official video, ...)
+    foundVideo = goodResults[0];
+    debug(
+      logger,
+      `Search music video: selected "${foundVideo.snippet.title}", by ${foundVideo.snippet.channelTitle}`
+    );
+  }
+  return foundVideo;
 }
 
-function searchMusicAudio(term, { logger } = {}) {
-  return searchVideo(`${term} audio`, { logger }).then(results => {
-    if (results[0])
-      debug(
-        logger,
-        `Search music audio: selected "${results[0].snippet.title}", by ${results[0].snippet.channelTitle}`
-      );
-    return results[0];
-  });
+async function searchMusicAudio(term, { logger }) {
+  const results = await searchVideo(`${term} audio`, { logger });
+  if (results[0])
+    debug(
+      logger,
+      `Search music audio: selected "${results[0].snippet.title}", by ${results[0].snippet.channelTitle}`
+    );
+  return results[0];
 }
 
 function isGoodMusicVideoContent(videoSearchResultItem) {

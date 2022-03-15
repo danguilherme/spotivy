@@ -38,10 +38,10 @@ function init() {
     .help(
       'Configure the tool with the keys from Spotify and YouTube. Creates the config file in the current folder.'
     )
-    .action((args, options, logger) => {
+    .action(async (args, options, logger) => {
       beforeCommand(logger);
-
-      cmd_init(configPath, { logger }).then(() => afterCommand(logger));
+      await cmd_init(configPath, { logger });
+      afterCommand(logger);
     });
 
   // command: download user playlist(s)
@@ -53,18 +53,17 @@ function init() {
       '[playlists...]',
       'Playlist IDs. If none, all user playlists will be downloaded'
     )
-    .action((args, options, logger) => {
+    .action(async (args, options, logger) => {
       beforeCommand(logger);
 
       const config = loadConfig(configPath, Object.assign({}, options, args), {
         logger,
       });
-      let cmdPromise;
 
       info(logger, `Saving media to '${config.output}'\n`);
 
       if (!args.playlists.length) {
-        cmdPromise = cmd_user(args.username, {
+        await cmd_user(args.username, {
           spotifyClientId: config.spotifyClientId,
           spotifyClientSecret: config.spotifyClientSecret,
           youtubeKey: config.youtubeKey,
@@ -75,7 +74,7 @@ function init() {
           logger,
         });
       } else {
-        cmdPromise = cmd_playlist(args.playlists, {
+        await cmd_playlist(args.playlists, {
           spotifyClientId: config.spotifyClientId,
           spotifyClientSecret: config.spotifyClientSecret,
           youtubeKey: config.youtubeKey,
@@ -87,7 +86,7 @@ function init() {
         });
       }
 
-      cmdPromise.then(() => afterCommand(logger));
+      afterCommand(logger);
     });
 
   // command: download track
@@ -95,7 +94,7 @@ function init() {
     .command('track', 'Download single tracks')
     .help('Download single tracks')
     .argument('<tracks...>', 'Track IDs (may be more than one)')
-    .action((args, options, logger) => {
+    .action(async (args, options, logger) => {
       beforeCommand(logger);
       const config = loadConfig(configPath, Object.assign({}, options, args), {
         logger,
@@ -103,7 +102,7 @@ function init() {
 
       info(logger, `Saving media to '${config.output}'\n`);
 
-      cmd_track(args.tracks, {
+      await cmd_track(args.tracks, {
         spotifyClientId: config.spotifyClientId,
         spotifyClientSecret: config.spotifyClientSecret,
         youtubeKey: config.youtubeKey,
@@ -112,7 +111,9 @@ function init() {
         output: config.output,
         flat: config.flat,
         logger,
-      }).then(() => afterCommand(logger));
+      });
+
+      afterCommand(logger);
     });
 
   configureGlobalOptions(commandPlaylist);

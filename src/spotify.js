@@ -3,9 +3,10 @@ const highland = require('highland');
 
 const { debug, error } = require('./log');
 
+/** @type {SpotifyWebApi} */
 let api = null;
 
-function login(clientId, clientSecret, { logger } = {}) {
+function login(clientId, clientSecret, { logger }) {
   return new Promise(function (resolve, reject) {
     if (!!api) {
       resolve(api);
@@ -38,25 +39,23 @@ function login(clientId, clientSecret, { logger } = {}) {
   });
 }
 
-function getTrack(trackId, { logger } = {}) {
+async function getTrack(trackId, { logger }) {
   debug(logger, `Fetch track: ${trackId}`);
-  return api.getTrack(trackId).then(trackResponse => {
-    const track = trackResponse.body;
-    debug(logger, `Success: ${track.name}`);
-    return track;
-  });
+  const trackResponse = await api.getTrack(trackId);
+  const track = trackResponse.body;
+  debug(logger, `Success: ${track.name}`);
+  return track;
 }
 
-function getPlaylist(playlistId, { logger } = {}) {
+async function getPlaylist(playlistId, { logger }) {
   debug(logger, `Fetch playlist: ${playlistId}`);
-  return api.getPlaylist(playlistId).then(playlistResponse => {
-    const playlist = playlistResponse.body;
-    debug(logger, `Success: ${playlist.name}`);
-    return playlist;
-  });
+  const playlistResponse = await api.getPlaylist(playlistId);
+  const playlist = playlistResponse.body;
+  debug(logger, `Success: ${playlist.name}`);
+  return playlist;
 }
 
-function getAllUserPlaylists(username, { logger } = {}) {
+function getAllUserPlaylists(username, { logger }) {
   debug(logger, `Fetching playlists of ${username}`);
   return createPaginationStream(
     function getPlaylistTracks(options) {
@@ -66,7 +65,7 @@ function getAllUserPlaylists(username, { logger } = {}) {
   );
 }
 
-function getAllPlaylistTracks(playlistId, { logger } = {}) {
+function getAllPlaylistTracks(playlistId, { logger }) {
   debug(logger, `Fetching playlist tracks (${playlistId})`);
   return createPaginationStream(
     function getPlaylistTracks(options) {
@@ -76,7 +75,7 @@ function getAllPlaylistTracks(playlistId, { logger } = {}) {
   );
 }
 
-function createPaginationStream(endpointFn, { logger } = {}) {
+function createPaginationStream(endpointFn, { logger }) {
   let offset = 0;
   let limit = 20;
   let totalItemsCount = undefined;

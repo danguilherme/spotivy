@@ -3,7 +3,7 @@ const chalk = require('chalk');
 
 const { info, debug, prompt } = require('../log');
 
-function cmd_init(configFilePath, { logger } = {}) {
+async function cmd_init(configFilePath, { logger }) {
   info(
     logger,
     `
@@ -52,64 +52,65 @@ and ${chalk.bold.red('YouTube')} APIs.
 
   debug(logger, `Will save config file to ${configFilePath}`);
 
+  const youtubeKey = await readYoutubeKey();
+  const spotifyKeys = await readSpotifyKeys();
   const config = {
     youtube: {
-      key: '',
+      key: youtubeKey,
     },
-    spotify: {
-      clientId: '',
-      clientSecret: '',
-    },
+    spotify: spotifyKeys,
   };
-  return readYoutubeKey()
-    .then(ytKey => (config.youtube.key = ytKey))
-    .then(() => readSpotifyKeys())
-    .then(sptfKeys => (config.spotify = sptfKeys))
-    .then(() => {
-      debug(logger, `Config generated:\n${JSON.stringify(config, null, 2)}`);
 
-      info(
-        logger,
-        `
+  debug(logger, `Config generated:\n${JSON.stringify(config, null, 2)}`);
+  info(
+    logger,
+    `
   Config file successfully created at ${chalk.bold(configFilePath)}.
 
   Happy downloading!`
-      );
-      return saveConfig(configFilePath, config);
-    });
+  );
+
+  return await saveConfig(configFilePath, config);
 }
 
-function readYoutubeKey() {
-  return prompt('Youtube Key: ').then(answer => {
-    if (!answer) return readYoutubeKey();
+/**
+ * @returns {Promise<string>}
+ */
+async function readYoutubeKey() {
+  const answer = await prompt('Youtube Key: ');
+  if (!answer) return readYoutubeKey();
 
-    return answer;
-  });
+  return answer;
 }
 
-function readSpotifyKeys() {
-  const config = { clientId: '', clientSecret: '' };
-  return readSpotifyClientId()
-    .then(clientId => (config.clientId = clientId))
-    .then(readSpotifyClientSecret)
-    .then(clientSecret => (config.clientSecret = clientSecret))
-    .then(() => config);
+/**
+ * @returns {Promise<Object>}
+ */
+async function readSpotifyKeys() {
+  const clientId = await readSpotifyClientId();
+  const clientSecret = await readSpotifyClientSecret();
+
+  return { clientId, clientSecret };
 }
 
-function readSpotifyClientId() {
-  return prompt('Spotify Client Id: ').then(answer => {
-    if (!answer) return readSpotifyClientId();
+/**
+ * @returns {Promise<string>}
+ */
+async function readSpotifyClientId() {
+  const answer = await prompt('Spotify Client Id: ');
+  if (!answer) return readSpotifyClientId();
 
-    return answer;
-  });
+  return answer;
 }
 
-function readSpotifyClientSecret() {
-  return prompt('Spotify Client Secret: ').then(answer => {
-    if (!answer) return readSpotifyClientSecret();
+/**
+ * @returns {Promise<string>}
+ */
+async function readSpotifyClientSecret() {
+  const answer = await prompt('Spotify Client Secret: ');
+  if (!answer) return readSpotifyClientSecret();
 
-    return answer;
-  });
+  return answer;
 }
 
 function saveConfig(path, config) {
