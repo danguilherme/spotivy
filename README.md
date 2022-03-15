@@ -49,19 +49,11 @@ It's not precise, but it does the job 90% of the time. [Any suggestion is welcom
 spotivy help
 ```
 
-### Commands
+## Commands
 
-- [Spotivy](#spotivy)
-  - [How it Works](#how-it-works)
-  - [Configuration](#configuration)
-  - [Usage](#usage)
-    - [Commands](#commands)
-    - [Global Options](#global-options)
-    - [Init](#init)
-    - [Download playlists](#download-playlists)
-      - [Available Options](#available-options)
-    - [Download single tracks](#download-single-tracks)
-- [License](#license)
+- [Tool configuration](#init)
+- [Download user playlists](#download-playlists)
+- [Download single tracks](#download-single-tracks)
 
 ### Global Options
 
@@ -112,8 +104,6 @@ Also accepts all [global options](#global-options).
 
 Download any track you want by its Spotify ID.
 
-Accepts all [global options](#global-options).
-
 ```bash
 spotivy track <track...> # tracks list
 spotivy track 5tXyNhNcsnn7HbcABntOSf
@@ -121,6 +111,8 @@ spotivy track 0SFJQqnU0k42NYaLb3qqTx 31acMiV67UgKn1ScFChFxo 52K4Nl7eVNqUpUeJeWJl
 
 spotivy help track
 ```
+
+Accepts all [global options](#global-options).
 
 # License
 
