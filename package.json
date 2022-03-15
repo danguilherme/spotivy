@@ -33,6 +33,9 @@
     "ytdl-core": "4.11.0"
   },
   "devDependencies": {
-    "eslint": "^4.19.1"
+    "@tsconfig/node14": "^1.0.1",
+    "@types/spotify-web-api-node": "^5.0.7",
+    "eslint": "^4.19.1",
+    "typescript": "^4.6.2"
   }
 }

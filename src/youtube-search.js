@@ -1,9 +1,10 @@
 const Youtube = require('youtube-api');
 
-const { debug, error } = require('./log');
+const { debug } = require('./log');
 
 async function login(key, { logger }) {
   debug(logger, `Youtube login`);
+  // @ts-ignore
   const result = Youtube.authenticate({
     type: 'key',
     key,
@@ -16,6 +17,7 @@ function searchVideo(term, { logger }) {
   return new Promise(function (resolve, reject) {
     debug(logger, `Search video: search "${term}"`);
 
+    // @ts-ignore
     Youtube.search.list(
       {
         part: 'snippet',

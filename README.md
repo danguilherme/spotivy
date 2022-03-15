@@ -10,7 +10,7 @@ Download all tracks from your Spotify playlists as videos or MP3.
 
 Spotivy gets the track information from Spotify and then search YouTube in the format of `${artist_name} - ${track_name}`.
 
-To decide which video to download from the returned list, it applies a [very simple test](https://github.com/danguilherme/spotivy/blob/v0.4.3/youtube_search.js#L76-L80) for each item:
+To decide which video to download from the returned list, it applies a [very simple test](https://github.com/danguilherme/spotivy/blob/v0.6.0/youtube_search.js#L104-L113) for each item:
 
 - video was published by any `VEVO` affiliated channel?
 - video channel contains `official` in its name?
@@ -71,7 +71,6 @@ These options are accepted by **any command**.
 | `-o`, `--output`  | Location where to save the downloaded media.                                                                                                          | `./media` |
 | `-f`, `--format`  | The format of the file to download. Either `video` or `audio`.                                                                                        | `video`   |
 | `-q`, `--quality` | The [quality][1] in which the video should be downloaded (ignored if `--format=audio`). Options: `144p`, `240p`, `360p`, `720p`, `highest`, `lowest`. | `highest` |
-| `--flat`          | Indicates if the files must be saved in one single folder (no subfolders). Useful if you're downloading multiple playlists.                           | -         |
 | `-a`, `--audio`   | Flag to download as audio; equivalent to `--format=audio`.                                                                                            | -         |
 | `-v`, `--verbose` | Show detailed logs.                                                                                                                                   | -         |
 
@@ -91,7 +90,11 @@ spotivy help init
 
 Download any public playlists from a given user.
 
-Accepts all [global options](#global-options).
+| Option   | Description                                                                                                                 | Default |
+| -------- | --------------------------------------------------------------------------------------------------------------------------- | ------- |
+| `--flat` | Indicates if the files must be saved in one single folder (no subfolders). Useful if you're downloading multiple playlists. | -       |
+
+Also accepts all [global options](#global-options).
 
 ```bash
 spotivy playlist <username> [playlist_ids...] # user id and playlist id, zero or more

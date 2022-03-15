@@ -45,13 +45,21 @@ function init() {
     });
 
   // command: download user playlist(s)
-  var commandPlaylist = caporal
+  const commandPlaylist = caporal
     .command('playlist', 'Download public playlists from the given user')
     .help('Download public playlists from the given user')
     .argument('<username>', 'The id of the playlist owner')
     .argument(
       '[playlists...]',
       'Playlist IDs. If none, all user playlists will be downloaded'
+    );
+  configureGlobalOptions(commandPlaylist);
+  commandPlaylist
+    .option(
+      '--flat',
+      'Flag to indicate if the files must be saved directly in the output folder, without subfolders',
+      caporal.BOOLEAN,
+      false
     )
     .action(async (args, options, logger) => {
       beforeCommand(logger);
@@ -90,7 +98,7 @@ function init() {
     });
 
   // command: download track
-  let commandTrack = caporal
+  const commandTrack = caporal
     .command('track', 'Download single tracks')
     .help('Download single tracks')
     .argument('<tracks...>', 'Track IDs (may be more than one)')
@@ -109,14 +117,11 @@ function init() {
         format: config.format,
         quality: qualityMap[config.quality],
         output: config.output,
-        flat: config.flat,
         logger,
       });
 
       afterCommand(logger);
     });
-
-  configureGlobalOptions(commandPlaylist);
   configureGlobalOptions(commandTrack);
 
   caporal.parse(process.argv);
@@ -143,12 +148,6 @@ function configureGlobalOptions(caporalCommand) {
       ).join(', ')}`,
       Object.keys(qualityMap),
       'highest'
-    )
-    .option(
-      '--flat',
-      'Flag to indicate if the files must be saved directly in the output folder, without subfolders',
-      caporal.BOOLEAN,
-      false
     )
     .option(
       '-a, --audio',
@@ -185,7 +184,7 @@ function afterCommand(logger) {
 
 init();
 
-function loadConfig(configFilePath, parsedArgs, { logger } = {}) {
+function loadConfig(configFilePath, parsedArgs, { logger }) {
   const config = {};
   try {
     const configFile = require(configFilePath);
