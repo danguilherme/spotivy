@@ -6,8 +6,16 @@ const mkdirp = require('mkdirp');
 const chalk = require('chalk');
 const highland = require('highland');
 
+const spotify = require('./spotify');
 const youtube = require('./youtube-search');
-const { INFO_COLUMN_WIDTH, info, debug, warn } = require('./log');
+const {
+  INFO_COLUMN_WIDTH,
+  info,
+  debug,
+  warn,
+  subtext,
+  fadedTextColor,
+} = require('./log');
 const { throughStream } = require('./stream-helpers');
 const {
   updateMetadata,
@@ -17,7 +25,7 @@ const {
 } = require('./metadata');
 const { createFolderName } = require('./create-folder-name');
 
-module.exports = { downloadTrack };
+module.exports = { downloadTrack, downloadPlaylist, downloadUserPlaylists };
 
 /**
  * Download the specified track on disk
@@ -43,7 +51,7 @@ function downloadTrack(
   }
 
   if (isTrackDownloaded(track.id, metadata)) {
-    warn(logger, `Media is already downloaded`);
+    subtext(logger, `Media is already downloaded`);
     return throughStream();
   }
 
@@ -52,6 +60,68 @@ function downloadTrack(
   return downloadFunction(trackName, path, { quality, logger })
     .map(() => updateMetadata(track, metadata))
     .map(() => saveMetadata(metadata, path));
+}
+
+/**
+ * Download all tracks from the given playlist
+ *
+ * @param {SpotifyPlaylist} playlist
+ * @param {*} param1
+ */
+function downloadPlaylist(
+  playlist,
+  {
+    format = 'video',
+    quality,
+    path = './',
+    createSubFolder = true,
+    logger,
+  } = {}
+) {
+  info(
+    logger,
+    chalk.bold.blue(leftPad('[Downloading playlist]', INFO_COLUMN_WIDTH)),
+    playlist.name
+  );
+
+  let targetPath = path;
+  if (createSubFolder)
+    targetPath = fsPath.join(path, createFolderName(playlist.name));
+  const metadata = loadMetadata(targetPath);
+
+  return spotify
+    .getAllPlaylistTracks(playlist.id, { logger })
+    .sequence()
+    .map(playlistTrack => playlistTrack.track)
+    .flatMap(track =>
+      downloadTrack(track, {
+        format,
+        quality,
+        path: targetPath,
+        logger,
+        metadata,
+      })
+    );
+}
+
+function downloadUserPlaylists(
+  username,
+  { format, quality, path, createSubFolder = true, logger } = {}
+) {
+  if (createSubFolder) path = fsPath.join(path, createFolderName(username));
+
+  return spotify
+    .getAllUserPlaylists(username, { logger })
+    .sequence()
+    .flatMap(playlist =>
+      downloadPlaylist(playlist, {
+        format,
+        quality,
+        path,
+        createSubFolder,
+        logger,
+      })
+    );
 }
 
 /**
@@ -174,7 +244,7 @@ function logVideoDownloadProgress(videoStream) {
   };
   const print = message => {
     resetLine();
-    process.stdout.write(`${leftMargin} ${chalk.gray(message)} `);
+    process.stdout.write(`${leftMargin} ${fadedTextColor(message)} `);
   };
 
   print('Preparing download...');

@@ -4,14 +4,24 @@ const readline = require('readline');
 
 const INFO_COLUMN_WIDTH = 25;
 
-module.exports = { INFO_COLUMN_WIDTH, info, debug, error, warn, prompt };
-
 const debugPrimaryColor = chalk.reset.cyan;
 const debugSecondaryColor = chalk.reset.cyan.bold;
 const errorPrimaryColor = chalk.reset.red;
 const warnPrimaryColor = chalk.reset.yellow;
 const promptPrimaryColor = chalk.reset.magenta;
 const promptSecondaryColor = chalk.reset.magenta.bold;
+const fadedTextColor = chalk.reset.gray;
+
+module.exports = {
+  INFO_COLUMN_WIDTH,
+  info,
+  debug,
+  error,
+  warn,
+  subtext,
+  fadedTextColor,
+  prompt,
+};
 
 function log(logger, level, ...args) {
   if (logger) logger[level].apply(logger, args);
@@ -22,17 +32,17 @@ function info(logger, ...args) {
 }
 
 function debug(logger, ...args) {
-  let colorizeSecondaryText = msg =>
+  const colorizeSecondaryText = msg =>
     Array.isArray(msg)
       ? msg.map(colorizeSecondaryText)
       : debugSecondaryColor(msg);
-  args = args.map(colorizeSecondaryText);
+  const colorizedArgs = args.map(colorizeSecondaryText);
 
   log(
     logger,
     'debug',
     debugPrimaryColor(leftPad('[DEBUG]', INFO_COLUMN_WIDTH)),
-    ...args
+    ...colorizedArgs
   );
 }
 
@@ -42,6 +52,19 @@ function warn(logger, ...args) {
     'warn',
     warnPrimaryColor(leftPad('[WARN]', INFO_COLUMN_WIDTH)),
     ...args
+  );
+}
+
+function subtext(logger, ...args) {
+  const colorizeSecondaryText = msg =>
+    Array.isArray(msg) ? msg.map(colorizeSecondaryText) : fadedTextColor(msg);
+  const colorizedArgs = args.map(colorizeSecondaryText);
+
+  log(
+    logger,
+    'info',
+    fadedTextColor(leftPad('', INFO_COLUMN_WIDTH)),
+    ...colorizedArgs
   );
 }
 
