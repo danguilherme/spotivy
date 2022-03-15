@@ -3,7 +3,7 @@ const fsPath = require('path');
 const chalk = require('chalk');
 const highland = require('highland');
 
-const youtube = require('../youtube_search');
+const youtube = require('../youtube-search');
 const spotify = require('../spotify');
 const { INFO_COLUMN_WIDTH, info } = require('../log');
 const { loadMetadata, isTrackDownloaded } = require('../metadata');

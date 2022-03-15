@@ -1,6 +1,6 @@
 const highland = require('highland');
 
-const youtube = require('../youtube_search');
+const youtube = require('../youtube-search');
 const spotify = require('../spotify');
 const { downloadTrack } = require('../download');
 const { logDownloadError } = require('./commons');

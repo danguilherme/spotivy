@@ -6,7 +6,7 @@ const mkdirp = require('mkdirp');
 const chalk = require('chalk');
 const highland = require('highland');
 
-const youtube = require('./youtube_search');
+const youtube = require('./youtube-search');
 const { INFO_COLUMN_WIDTH, info, debug, warn } = require('./log');
 const { throughStream } = require('./stream-helpers');
 const {
