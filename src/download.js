@@ -255,7 +255,7 @@ function logVideoDownloadProgress(videoStream) {
   trackVideoDownload(videoStream, {
     onProgressChanged: function (data) {
       const { percent } = data;
-      print(`${(percent * 100).toFixed()}%`);
+      print(`${(percent * 100).toFixed().padStart(3)}%`);
     },
     onEnd: function () {
       resetLine();

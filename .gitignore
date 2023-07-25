@@ -2,3 +2,4 @@ node_modules/
 media/
 config.json
 .DS_Store
+.yarn

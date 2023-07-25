@@ -18,9 +18,7 @@
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "main": "src/index.js",
-  "bin": {
-    "spotivy": "./src/index.js"
-  },
+  "bin": "./src/index.js",
   "dependencies": {
     "caporal": "1.4.0",
     "chalk": "4.1.2",
